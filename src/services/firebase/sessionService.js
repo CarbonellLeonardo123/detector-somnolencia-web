@@ -3,12 +3,13 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   getDocs,
-  getDoc,
   query,
   orderBy,
   limit,
   serverTimestamp,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './config';
 
@@ -19,13 +20,14 @@ const LOCAL_STORAGE_SESSIONS_KEY = 'somnoguard_sessions_history';
  */
 export async function createSession(userId, sessionData) {
   const sessionId = sessionData.sessionId || `session_${Date.now()}`;
+  const nowIso = new Date().toISOString();
   const preparedData = {
     ...sessionData,
     sessionId,
     userId: userId || 'anonymous',
     status: 'active',
-    createdAt: new Date().toISOString(),
-    startedAt: new Date().toISOString(),
+    createdAt: nowIso,
+    startedAt: nowIso,
     timeline: [],
     metrics: {
       totalAlerts: 0,
@@ -50,7 +52,7 @@ export async function createSession(userId, sessionData) {
       });
       return sessionId;
     } catch (err) {
-      console.warn('Error saving session to Firestore, saving locally:', err);
+      console.warn('Error saving session to Firestore, falling back to local storage:', err);
     }
   }
 
@@ -67,7 +69,7 @@ export async function createSession(userId, sessionData) {
 }
 
 /**
- * Updates an ongoing or completed session
+ * Updates an ongoing or completed session in Firestore
  */
 export async function updateSession(userId, sessionId, updateData) {
   if (isFirebaseConfigured && db && userId) {
@@ -99,7 +101,75 @@ export async function updateSession(userId, sessionId, updateData) {
 }
 
 /**
- * Retrieves past sessions for a user
+ * Deletes a session from Firestore and local storage
+ */
+export async function deleteSession(userId, sessionId) {
+  if (isFirebaseConfigured && db && userId) {
+    try {
+      const sessionRef = doc(db, 'users', userId, 'sessions', sessionId);
+      await deleteDoc(sessionRef);
+    } catch (err) {
+      console.warn('Error deleting session from Firestore:', err);
+    }
+  }
+
+  // Remove from local storage
+  try {
+    const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
+    const filtered = existing.filter((s) => s.sessionId !== sessionId);
+    localStorage.setItem(LOCAL_STORAGE_SESSIONS_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.error('Failed to delete session locally:', e);
+  }
+
+  return true;
+}
+
+/**
+ * Subscribes in real-time to user sessions from Firestore with local fallback
+ */
+export function subscribeUserSessions(userId, onSessionsChanged, maxSessions = 30) {
+  if (isFirebaseConfigured && db && userId) {
+    try {
+      const sessionsRef = collection(db, 'users', userId, 'sessions');
+      const q = query(sessionsRef, orderBy('startedAt', 'desc'), limit(maxSessions));
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const sessions = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            sessions.push({
+              id: docSnap.id,
+              ...data,
+              startedAt: data.startedAt?.toDate ? data.startedAt.toDate() : data.startedAt,
+              endedAt: data.endedAt?.toDate ? data.endedAt.toDate() : data.endedAt,
+            });
+          });
+          onSessionsChanged(sessions);
+        },
+        (error) => {
+          console.warn('Firestore onSnapshot error, reverting to local data:', error);
+          const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
+          onSessionsChanged(existing);
+        }
+      );
+
+      return unsubscribe;
+    } catch (err) {
+      console.warn('Error establishing Firestore subscription:', err);
+    }
+  }
+
+  // Local fallback
+  const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
+  onSessionsChanged(existing);
+  return () => {};
+}
+
+/**
+ * One-off query of past sessions
  */
 export async function getUserSessions(userId, maxSessions = 30) {
   if (isFirebaseConfigured && db && userId) {
@@ -109,9 +179,15 @@ export async function getUserSessions(userId, maxSessions = 30) {
       const snapshot = await getDocs(q);
       const sessions = [];
       snapshot.forEach((docSnap) => {
-        sessions.push({ id: docSnap.id, ...docSnap.data() });
+        const data = docSnap.data();
+        sessions.push({
+          id: docSnap.id,
+          ...data,
+          startedAt: data.startedAt?.toDate ? data.startedAt.toDate() : data.startedAt,
+          endedAt: data.endedAt?.toDate ? data.endedAt.toDate() : data.endedAt,
+        });
       });
-      if (sessions.length > 0) return sessions;
+      return sessions;
     } catch (err) {
       console.warn('Error fetching Firestore sessions, reading local:', err);
     }
