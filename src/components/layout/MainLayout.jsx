@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Container, Typography } from '@mui/material';
 import Header from './Header';
 
-export default function MainLayout({ children }) {
+export default function MainLayout({ children, onExitApp }) {
   return (
     <Box
       sx={{
@@ -12,7 +12,7 @@ export default function MainLayout({ children }) {
         backgroundColor: '#f8fafc',
       }}
     >
-      <Header />
+      <Header onExitApp={onExitApp} />
 
       <Box component="main" sx={{ flexGrow: 1, py: 4 }}>
         <Container maxWidth="xl">{children}</Container>

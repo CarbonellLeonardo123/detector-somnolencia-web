@@ -1,5 +1,6 @@
 import {
   collection,
+  collectionGroup,
   doc,
   setDoc,
   updateDoc,
@@ -201,3 +202,45 @@ export async function getUserSessions(userId, maxSessions = 30) {
     return [];
   }
 }
+
+/**
+ * Queries all sessions across all drivers (for Fleet Admin Panel)
+ */
+export async function getAllFleetSessions(maxSessions = 100) {
+  if (isFirebaseConfigured && db) {
+    try {
+      let snapshot;
+      try {
+        const q = query(collectionGroup(db, 'sessions'), orderBy('startedAt', 'desc'), limit(maxSessions));
+        snapshot = await getDocs(q);
+      } catch (errOrder) {
+        // Fallback in case collectionGroup indexing is missing
+        const qFallback = query(collectionGroup(db, 'sessions'), limit(maxSessions));
+        snapshot = await getDocs(qFallback);
+      }
+      const sessions = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        sessions.push({
+          id: docSnap.id,
+          ...data,
+          startedAt: data.startedAt?.toDate ? data.startedAt.toDate() : (data.startedAt ? new Date(data.startedAt) : new Date()),
+          endedAt: data.endedAt?.toDate ? data.endedAt.toDate() : (data.endedAt ? new Date(data.endedAt) : null),
+        });
+      });
+      sessions.sort((a, b) => new Date(b.startedAt || 0) - new Date(a.startedAt || 0));
+      if (sessions.length > 0) return sessions;
+    } catch (err) {
+      console.warn('Error fetching all fleet sessions from collectionGroup:', err);
+    }
+  }
+
+  // Local fallback
+  try {
+    const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
+    return existing;
+  } catch {
+    return [];
+  }
+}
+

@@ -8,10 +8,8 @@ import {
   Typography,
   Box,
   Paper,
-  Grid,
   Chip,
   Stack,
-  Divider,
   IconButton,
 } from '@mui/material';
 import {
@@ -19,8 +17,6 @@ import {
   Functions as FunctionsIcon,
   Psychology as PsychologyIcon,
   Timeline as TimelineIcon,
-  School as SchoolIcon,
-  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 
 export default function MathModelModal({ open, onClose }) {
@@ -44,10 +40,10 @@ export default function MathModelModal({ open, onClose }) {
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a' }}>
-              Fundamento Matemático, Algoritmos y Red Neuronal
+              Fundamento Matemático y Algoritmos de Visión
             </Typography>
             <Typography variant="caption" sx={{ color: '#64748b' }}>
-              Documentación técnica y ecuaciones para la evaluación académica
+              Modelos de Visión Artificial, Ecuaciones de Apertura Ocular y Probabilidades de Fatiga
             </Typography>
           </Box>
         </Stack>
@@ -164,56 +160,6 @@ export default function MathModelModal({ open, onClose }) {
             <Typography variant="body2" sx={{ color: '#475569', fontSize: '0.85rem' }}>
               • <strong>Tasa de Parpadeo:</strong> Ventana deslizante de 60 segundos (Frecuencia normal: 12 - 20 /min). Frecuencias inferiores a 10 o superiores a 26 disparan penalizaciones de somnolencia.
             </Typography>
-          </Paper>
-
-          {/* 4. Créditos Académicos SENATI */}
-          <Paper elevation={0} sx={{ p: 2.5, backgroundColor: '#eff6ff', border: '1.5px solid #93c5fd', borderRadius: 2 }}>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-              <SchoolIcon sx={{ color: '#1d4ed8' }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#1e40af' }}>
-                Créditos Académicos &mdash; Proyecto Final de Algoritmia
-              </Typography>
-            </Stack>
-
-            <Typography variant="body2" sx={{ color: '#1e3a8a', fontWeight: 600, mb: 1 }}>
-              SENATI &bull; Fundamentos de Algoritmia Grupal &bull; Entrega: 05 de Octubre
-            </Typography>
-
-            <Typography variant="subtitle2" sx={{ color: '#1e40af', fontWeight: 700, mb: 1 }}>
-              GRUPO 1:
-            </Typography>
-            <Grid container spacing={1}>
-              <Grid item xs={12} sm={4}>
-                <Box sx={{ p: 1.2, backgroundColor: '#ffffff', borderRadius: 1.5, border: '1px solid #bfdbfe' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                    Vargas Pérez Manuel Antonio
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#64748b' }}>
-                    Desarrollador / Investigador
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Box sx={{ p: 1.2, backgroundColor: '#ffffff', borderRadius: 1.5, border: '1px solid #bfdbfe' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                    Pérez Bayona Leonardo Charlie
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#64748b' }}>
-                    Líder de Proyecto / Frontend
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Box sx={{ p: 1.2, backgroundColor: '#ffffff', borderRadius: 1.5, border: '1px solid #bfdbfe' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                    Bermudo Ramírez Erika Jamileth
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#64748b' }}>
-                    Desarrolladora / Documentación
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
           </Paper>
         </Stack>
       </DialogContent>

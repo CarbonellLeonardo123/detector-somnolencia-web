@@ -7,34 +7,53 @@ import {
   signInAnonymously,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  getDoc,
+  getDocs,
+  collection,
+  query,
+  orderBy,
+  limit,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from './config';
 
+const LOCAL_STORAGE_USERS_KEY = 'somnoguard_registered_users_list';
 const LOCAL_STORAGE_USER_KEY = 'somnoguard_user_profile';
 
 /**
  * Registers a new user with Email and Password, sends a verification email,
- * and creates their driver profile in Firestore.
+ * and records their profile in Firestore.
  */
 export async function registerWithEmail(email, password, displayName) {
+  const name = displayName || email.split('@')[0];
+
   if (!isFirebaseConfigured || !auth) {
-    // Offline local simulation
     const localUser = {
-      uid: 'local_' + Date.now(),
+      uid: 'user_' + Date.now(),
       email,
-      displayName: displayName || 'Conductor',
+      displayName: name,
       isAnonymous: false,
       emailVerified: true,
       role: 'driver',
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
     };
     localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(localUser));
+
+    // Save to local users list
+    const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_USERS_KEY) || '[]');
+    existing.unshift(localUser);
+    localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(existing));
+
     return { user: localUser, verificationSent: true };
   }
 
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   const user = cred.user;
 
-  // Update Auth Profile name
   if (displayName) {
     await updateProfile(user, { displayName }).catch(() => {});
   }
@@ -48,14 +67,14 @@ export async function registerWithEmail(email, password, displayName) {
     console.warn('Could not send verification email:', err);
   }
 
-  // Create user profile in Firestore
+  // Create user profile document in Firestore
   if (db) {
     try {
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         email: user.email,
-        displayName: displayName || user.email.split('@')[0],
-        role: 'driver', // 'driver' | 'supervisor'
+        displayName: name,
+        role: 'driver',
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
       });
@@ -74,25 +93,37 @@ export async function loginWithEmail(email, password) {
   if (!isFirebaseConfigured || !auth) {
     const saved = JSON.parse(localStorage.getItem(LOCAL_STORAGE_USER_KEY) || '{}');
     if (saved.email === email) {
+      saved.lastLogin = new Date().toISOString();
+      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(saved));
       return { user: saved };
     }
     const simulatedUser = {
-      uid: 'local_' + Date.now(),
+      uid: 'user_' + Date.now(),
       email,
       displayName: email.split('@')[0],
       isAnonymous: false,
       emailVerified: true,
       role: 'driver',
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
     };
     localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(simulatedUser));
     return { user: simulatedUser };
   }
 
   const cred = await signInWithEmailAndPassword(auth, email, password);
-  
+
   // Update last login in Firestore
   if (db && cred.user) {
-    setDoc(doc(db, 'users', cred.user.uid), { lastLogin: serverTimestamp() }, { merge: true }).catch(() => {});
+    setDoc(
+      doc(db, 'users', cred.user.uid),
+      {
+        lastLogin: serverTimestamp(),
+        email: cred.user.email,
+        displayName: cred.user.displayName || cred.user.email.split('@')[0],
+      },
+      { merge: true }
+    ).catch(() => {});
   }
 
   return cred;
@@ -102,19 +133,40 @@ export async function loginWithEmail(email, password) {
  * Fast Guest / Demo login for presentations without registration
  */
 export async function loginAsGuest() {
+  const guestName = 'Conductor Invitado';
+
   if (!isFirebaseConfigured || !auth) {
     const guestUser = {
       uid: 'guest_' + Math.random().toString(36).substring(2, 9),
-      displayName: 'Conductor Invitado (Demo)',
+      displayName: guestName,
       isAnonymous: true,
       emailVerified: false,
       role: 'guest',
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
     };
     localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(guestUser));
     return { user: guestUser };
   }
 
-  return signInAnonymously(auth);
+  const cred = await signInAnonymously(auth);
+
+  if (db && cred.user) {
+    setDoc(
+      doc(db, 'users', cred.user.uid),
+      {
+        uid: cred.user.uid,
+        displayName: guestName,
+        isAnonymous: true,
+        role: 'guest',
+        lastLogin: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    ).catch(() => {});
+  }
+
+  return cred;
 }
 
 /**
@@ -140,6 +192,8 @@ export async function resetPassword(email) {
  */
 export async function logoutUser() {
   localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
+  sessionStorage.removeItem('somnoguard_has_entered');
+  sessionStorage.removeItem('somnoguard_admin_authenticated');
   if (isFirebaseConfigured && auth) {
     await signOut(auth);
   }
@@ -163,4 +217,42 @@ export async function getUserProfile(uid) {
   }
 
   return null;
+}
+
+/**
+ * Real Firestore query for the Fleet Admin Panel:
+ * Returns all real users registered in Firestore with their registration and last login timestamps!
+ */
+export async function getAllRegisteredUsers() {
+  if (isFirebaseConfigured && db) {
+    try {
+      const usersRef = collection(db, 'users');
+      let snapshot;
+      try {
+        const q = query(usersRef, orderBy('createdAt', 'desc'), limit(50));
+        snapshot = await getDocs(q);
+      } catch (errOrder) {
+        // Fallback in case orderBy requires index or documents lack createdAt
+        snapshot = await getDocs(query(usersRef, limit(50)));
+      }
+      const list = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        list.push({
+          id: docSnap.id,
+          ...data,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt || null),
+          lastLogin: data.lastLogin?.toDate ? data.lastLogin.toDate() : (data.lastLogin || null),
+        });
+      });
+      // Sort client-side
+      list.sort((a, b) => new Date(b.createdAt || b.lastLogin || 0) - new Date(a.createdAt || a.lastLogin || 0));
+      if (list.length > 0) return list;
+    } catch (e) {
+      console.warn('Error fetching all users from Firestore:', e);
+    }
+  }
+
+  // Fallback to local storage list
+  return JSON.parse(localStorage.getItem(LOCAL_STORAGE_USERS_KEY) || '[]');
 }

@@ -34,11 +34,10 @@ import FirebaseConfigModal from '../history/FirebaseConfigModal';
 import AuthModal from '../auth/AuthModal';
 import MathModelModal from '../math/MathModelModal';
 
-export default function Header() {
+export default function Header({ onExitApp }) {
   const location = useLocation();
   const { user, profile, isAuthenticated, logout } = useAuth();
 
-  const [configModalOpen, setConfigModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [mathModalOpen, setMathModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -53,7 +52,11 @@ export default function Header() {
 
   const handleLogout = async () => {
     handleMenuClose();
-    await logout();
+    if (onExitApp) {
+      await onExitApp();
+    } else {
+      await logout();
+    }
   };
 
   return (
@@ -119,7 +122,7 @@ export default function Header() {
               </Box>
             </Box>
 
-            {/* Navigation Buttons */}
+            {/* Navigation Buttons (Cleaned) */}
             <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 0.5 }}>
               <Button
                 component={Link}
@@ -152,26 +155,38 @@ export default function Header() {
                 color="primary"
                 size="small"
                 startIcon={<LocalShippingIcon />}
+                endIcon={<Chip label="Admin" size="small" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 800, bgcolor: location.pathname === '/flota' ? '#ffffff33' : '#e2e8f0', color: location.pathname === '/flota' ? '#ffffff' : '#475569' }} />}
                 sx={{ fontWeight: 700 }}
               >
                 Panel Flota
               </Button>
-
-              {/* Math Model Button for SENATI Presentation */}
-              <Button
-                variant="outlined"
-                color="info"
-                size="small"
-                startIcon={<FunctionsIcon />}
-                onClick={() => setMathModalOpen(true)}
-                sx={{ fontWeight: 700, borderColor: '#bae6fd', color: '#0288d1' }}
-              >
-                Algoritmos & Ecuaciones
-              </Button>
             </Stack>
 
-            {/* User Auth Profile & Cloud State */}
+            {/* Right Tools: Math Documentation & User Profile */}
             <Stack direction="row" spacing={1.5} alignItems="center">
+              {/* Discrete Math Model Button */}
+              <Tooltip title="Ver fórmulas matemáticas y algoritmos de fatiga">
+                <Button
+                  variant="outlined"
+                  color="info"
+                  size="small"
+                  startIcon={<FunctionsIcon />}
+                  onClick={() => setMathModalOpen(true)}
+                  sx={{
+                    fontWeight: 700,
+                    borderColor: '#bae6fd',
+                    color: '#0288d1',
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontSize: '0.8rem',
+                    display: { xs: 'none', sm: 'inline-flex' },
+                  }}
+                >
+                  Ecuaciones & IA
+                </Button>
+              </Tooltip>
+
+              {/* User Account / Exit */}
               {isAuthenticated ? (
                 <>
                   <Tooltip title="Cuenta de Conductor">
@@ -181,72 +196,43 @@ export default function Header() {
                       color="inherit"
                       size="small"
                       startIcon={
-                        <Avatar sx={{ width: 28, height: 28, bgcolor: '#1976d2', fontSize: '0.8rem' }}>
-                          {profile?.displayName?.charAt(0) || user?.email?.charAt(0) || 'C'}
+                        <Avatar sx={{ width: 28, height: 28, bgcolor: user?.isAnonymous ? '#f59e0b' : '#1976d2', fontSize: '0.8rem' }}>
+                          {user?.isAnonymous ? 'I' : (profile?.displayName?.charAt(0) || user?.email?.charAt(0) || 'C')}
                         </Avatar>
                       }
                       sx={{ textTransform: 'none', fontWeight: 700 }}
                     >
-                      {profile?.displayName || user?.email?.split('@')[0]}
+                      {user?.isAnonymous ? 'Modo Invitado' : (profile?.displayName || user?.email?.split('@')[0])}
                     </Button>
                   </Tooltip>
                   <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
                     <Box sx={{ px: 2, py: 1 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        {profile?.displayName || 'Conductor'}
+                        {user?.isAnonymous ? 'Conductor Invitado (Demo)' : (profile?.displayName || 'Conductor')}
                       </Typography>
                       <Typography variant="caption" sx={{ color: '#64748b' }}>
-                        {user?.email}
+                        {user?.isAnonymous ? 'Modo de prueba rápida' : user?.email}
                       </Typography>
                     </Box>
                     <Divider />
                     <MenuItem onClick={handleLogout} sx={{ color: '#dc2626', fontWeight: 600 }}>
                       <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
-                      Cerrar Sesión
+                      Salir / Cambiar Conductor
                     </MenuItem>
                   </Menu>
                 </>
               ) : (
                 <Button
-                  variant="contained"
+                  variant="outlined"
                   color="primary"
                   size="small"
                   startIcon={<PersonIcon />}
                   onClick={() => setAuthModalOpen(true)}
-                  sx={{
-                    fontWeight: 700,
-                    boxShadow: '0 2px 8px rgba(25, 118, 210, 0.25)',
-                  }}
+                  sx={{ fontWeight: 700 }}
                 >
-                  Iniciar Sesión / Registro
+                  Iniciar Sesión
                 </Button>
               )}
-
-              {/* Firebase Cloud Chip */}
-              <Tooltip title="Haz clic para ver o probar el estado de Firebase Firestore" arrow>
-                <Chip
-                  onClick={() => setConfigModalOpen(true)}
-                  clickable
-                  size="small"
-                  icon={
-                    isFirebaseConfigured ? (
-                      <CloudDoneIcon fontSize="small" sx={{ color: '#16a34a !important' }} />
-                    ) : (
-                      <CloudOffIcon fontSize="small" sx={{ color: '#ea580c !important' }} />
-                    )
-                  }
-                  label={isFirebaseConfigured ? 'Firestore Nube' : 'Modo Local'}
-                  variant="outlined"
-                  sx={{
-                    borderColor: isFirebaseConfigured ? '#bbf7d0' : '#fed7aa',
-                    backgroundColor: isFirebaseConfigured ? '#f0fdf4' : '#fff7ed',
-                    color: isFirebaseConfigured ? '#15803d' : '#c2410c',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    display: { xs: 'none', md: 'inline-flex' },
-                  }}
-                />
-              </Tooltip>
             </Stack>
           </Toolbar>
         </Container>
@@ -255,11 +241,6 @@ export default function Header() {
       {/* Modals */}
       <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <MathModelModal open={mathModalOpen} onClose={() => setMathModalOpen(false)} />
-      <FirebaseConfigModal
-        open={configModalOpen}
-        onClose={() => setConfigModalOpen(false)}
-        onConfigSaved={() => setConfigModalOpen(false)}
-      />
     </>
   );
 }
