@@ -26,12 +26,11 @@ import {
   MarkEmailRead as MarkEmailReadIcon,
   Visibility as VisibilityIcon,
   Functions as FunctionsIcon,
-  Shield as ShieldIcon,
-} from '@mui/icons-material';
+  } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import MathModelModal from '../math/MathModelModal';
 
-export default function WelcomeAuthPage({ onEnterApp, onOpenAdmin }) {
+export default function WelcomeAuthPage({ onEnterApp }) {
   const { register, login, loginGuest } = useAuth();
 
   const [tab, setTab] = useState(0); // 0: Login, 1: Register
@@ -94,6 +93,11 @@ export default function WelcomeAuthPage({ onEnterApp, onOpenAdmin }) {
       onEnterApp();
     } catch (err) {
       console.error('Guest login error:', err);
+      setErrorMessage(
+        err.code === 'auth/operation-not-allowed'
+          ? 'El modo demo no está habilitado en Firebase. Activa el inicio de sesión anónimo en Authentication > Sign-in method.'
+          : 'No se pudo iniciar el modo demo. Revisa tu conexión e inténtalo de nuevo.'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -291,15 +295,20 @@ export default function WelcomeAuthPage({ onEnterApp, onOpenAdmin }) {
                     )}
                   </Button>
                 </Stack>
+              </form>
+            )}
 
-                <Divider sx={{ my: 3 }}>
+            {/* Divider and Instant Guest / Demo Button outside the form */}
+            {!verificationSent && (
+              <Box sx={{ mt: 3 }}>
+                <Divider sx={{ mb: 3 }}>
                   <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700 }}>
                     O INGRESA SIN REGISTRO
                   </Typography>
                 </Divider>
 
-                {/* Instant Guest / Demo Button */}
                 <Button
+                  type="button"
                   variant="outlined"
                   color="inherit"
                   fullWidth
@@ -309,7 +318,7 @@ export default function WelcomeAuthPage({ onEnterApp, onOpenAdmin }) {
                   disabled={submitting}
                   sx={{
                     py: 1.4,
-                    color: '#334155',
+                    color: '#1e293b',
                     borderColor: '#cbd5e1',
                     fontWeight: 700,
                     backgroundColor: '#f8fafc',
@@ -318,18 +327,13 @@ export default function WelcomeAuthPage({ onEnterApp, onOpenAdmin }) {
                 >
                   Entrar como Conductor Invitado (Modo Demo)
                 </Button>
-              </form>
+              </Box>
             )}
           </CardContent>
         </Card>
 
         {/* Footer Actions */}
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ mt: 3, px: 1, flexWrap: 'wrap', gap: 1 }}
-        >
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
           <Button
             size="small"
             startIcon={<FunctionsIcon />}
@@ -338,16 +342,7 @@ export default function WelcomeAuthPage({ onEnterApp, onOpenAdmin }) {
           >
             Ver Ecuaciones y Algoritmos
           </Button>
-
-          <Button
-            size="small"
-            startIcon={<ShieldIcon />}
-            onClick={onOpenAdmin}
-            sx={{ color: '#94a3b8', fontWeight: 600, '&:hover': { color: '#38bdf8' } }}
-          >
-            Acceso Supervisores (Admin)
-          </Button>
-        </Stack>
+        </Box>
       </Container>
 
       {/* Math Modal */}

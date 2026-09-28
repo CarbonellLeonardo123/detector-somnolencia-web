@@ -97,6 +97,14 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const res = await loginAsGuest();
+      const guest = res.user;
+      setUser(guest);
+      setProfile({
+        uid: guest.uid,
+        displayName: guest.displayName || 'Conductor Invitado',
+        isAnonymous: true,
+        role: 'guest',
+      });
       return res;
     } finally {
       setLoading(false);

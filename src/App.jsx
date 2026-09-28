@@ -23,12 +23,6 @@ function AppRoutes() {
     setHasEntered(true);
   };
 
-  const handleOpenAdminFromWelcome = () => {
-    sessionStorage.setItem('somnoguard_has_entered', 'true');
-    setHasEntered(true);
-    navigate('/flota');
-  };
-
   const handleExitApp = async () => {
     sessionStorage.removeItem('somnoguard_has_entered');
     sessionStorage.removeItem('somnoguard_admin_authenticated');
@@ -41,7 +35,6 @@ function AppRoutes() {
     return (
       <WelcomeAuthPage
         onEnterApp={handleEnterApp}
-        onOpenAdmin={handleOpenAdminFromWelcome}
       />
     );
   }
