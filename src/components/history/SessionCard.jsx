@@ -45,7 +45,7 @@ export default function SessionCard({ session, onDelete }) {
 
         {/* Metrics Grid */}
         <Grid container spacing={2}>
-          <Grid item xs={6} sm={2.4}>
+          <Grid size={{ xs: 6, sm: 2.4 }}>
             <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
               Duración
             </Typography>
@@ -54,7 +54,7 @@ export default function SessionCard({ session, onDelete }) {
             </Typography>
           </Grid>
 
-          <Grid item xs={6} sm={2.4}>
+          <Grid size={{ xs: 6, sm: 2.4 }}>
             <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
               Fatiga Promedio / Máx
             </Typography>
@@ -63,7 +63,7 @@ export default function SessionCard({ session, onDelete }) {
             </Typography>
           </Grid>
 
-          <Grid item xs={6} sm={2.4}>
+          <Grid size={{ xs: 6, sm: 2.4 }}>
             <Typography variant="caption" sx={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <BedtimeIcon sx={{ fontSize: 14, color: metrics?.microsleepCount > 0 ? '#dc2626' : 'inherit' }} />
               Micro-Sueños
@@ -76,7 +76,7 @@ export default function SessionCard({ session, onDelete }) {
             </Typography>
           </Grid>
 
-          <Grid item xs={6} sm={2.4}>
+          <Grid size={{ xs: 6, sm: 2.4 }}>
             <Typography variant="caption" sx={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <NotificationsActiveIcon sx={{ fontSize: 14, color: metrics?.totalAlerts > 0 ? '#ea580c' : 'inherit' }} />
               Total Alertas
@@ -89,7 +89,7 @@ export default function SessionCard({ session, onDelete }) {
             </Typography>
           </Grid>
 
-          <Grid item xs={6} sm={2.4}>
+          <Grid size={{ xs: 6, sm: 2.4 }}>
             <Typography variant="caption" sx={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <VisibilityIcon sx={{ fontSize: 14 }} />
               EAR Promedio

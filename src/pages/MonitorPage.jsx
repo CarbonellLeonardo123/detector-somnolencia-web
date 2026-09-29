@@ -57,12 +57,12 @@ export default function MonitorPage() {
       <StatusIndicator state={uiState.state} />
 
       {/* Main monitoring workspace */}
-      <Grid container spacing={3} alignItems="stretch">
-        <Grid item xs={12} lg={7}>
+      <Grid container spacing={3}>
+        <Grid size={{ xs: 12, lg: 7 }}>
           <WebcamFeed />
         </Grid>
 
-        <Grid item xs={12} lg={5}>
+        <Grid size={{ xs: 12, lg: 5 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, height: '100%' }}>
             <FatigueGauge
               percentage={uiState.fatigueProbability}
@@ -92,10 +92,10 @@ export default function MonitorPage() {
         </Box>
 
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <EARTimelineChart data={chartData} earThreshold={uiState.earThreshold} />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <AttentionChart data={chartData} />
           </Grid>
         </Grid>

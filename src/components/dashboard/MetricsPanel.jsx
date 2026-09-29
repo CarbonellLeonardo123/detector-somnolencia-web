@@ -71,7 +71,7 @@ export default function MetricsPanel({
   return (
     <Grid container spacing={2}>
       {metricCards.map((metric, idx) => (
-        <Grid item xs={12} sm={6} md={idx === 0 ? 12 : 6} key={metric.title}>
+        <Grid size={{ xs: 12, sm: 6, md: idx === 0 ? 12 : 6 }} key={metric.title}>
           <Card
             sx={{
               backgroundColor: metric.bgColor,
