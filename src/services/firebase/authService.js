@@ -48,7 +48,7 @@ export async function registerWithEmail(email, password, displayName) {
     existing.unshift(localUser);
     localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(existing));
 
-    return { user: localUser, verificationSent: true };
+    return { user: localUser, verificationSent: false, localOnly: true };
   }
 
   const cred = await createUserWithEmailAndPassword(auth, email, password);

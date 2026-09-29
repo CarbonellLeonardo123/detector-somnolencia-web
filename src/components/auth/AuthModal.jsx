@@ -25,11 +25,13 @@ import {
   Person as PersonIcon,
   DirectionsCar as DirectionsCarIcon,
   MarkEmailRead as MarkEmailReadIcon,
+  CloudOff as CloudOffIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
+import { getAuthErrorMessage } from '../../utils/authErrors';
 
 export default function AuthModal({ open, onClose }) {
-  const { register, login, loginGuest } = useAuth();
+  const { register, login, loginGuest, resetPassword } = useAuth();
 
   const [tab, setTab] = useState(0); // 0: Login, 1: Register
   const [displayName, setDisplayName] = useState('');
@@ -38,46 +40,65 @@ export default function AuthModal({ open, onClose }) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
   const [verificationSent, setVerificationSent] = useState(false);
+  const [localAccountCreated, setLocalAccountCreated] = useState(false);
 
   const handleTabChange = (event, newValue) => {
     setTab(newValue);
     setErrorMessage('');
+    setInfoMessage('');
     setVerificationSent(false);
+    setLocalAccountCreated(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    setInfoMessage('');
     setSubmitting(true);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       if (tab === 0) {
         // Iniciar Sesión
-        await login(email, password);
+        await login(normalizedEmail, password);
         onClose();
       } else {
         // Crear Cuenta
-        const res = await register(email, password, displayName);
+        const res = await register(normalizedEmail, password, displayName.trim());
         if (res?.verificationSent) {
           setVerificationSent(true);
+        } else if (res?.localOnly) {
+          setLocalAccountCreated(true);
         } else {
           onClose();
         }
       }
     } catch (err) {
       console.error('Auth error:', err);
-      let msg = 'Ocurrió un error al procesar tu solicitud.';
-      if (err.code === 'auth/email-already-in-use') {
-        msg = 'Este correo electrónico ya está registrado. Intenta iniciar sesión.';
-      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        msg = 'Contraseña o correo incorrectos. Verifica tus datos.';
-      } else if (err.code === 'auth/weak-password') {
-        msg = 'La contraseña debe tener al menos 6 caracteres.';
-      } else if (err.code === 'auth/invalid-email') {
-        msg = 'El formato del correo electrónico no es válido.';
-      }
-      setErrorMessage(msg);
+      setErrorMessage(getAuthErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setErrorMessage('Escribe tu correo electrónico para enviarte el enlace de recuperación.');
+      return;
+    }
+
+    setErrorMessage('');
+    setInfoMessage('');
+    setSubmitting(true);
+    try {
+      await resetPassword(normalizedEmail);
+      setInfoMessage(`Si el correo está registrado, recibirás un enlace de recuperación en ${normalizedEmail}.`);
+    } catch (err) {
+      console.error('Password reset error:', err);
+      setErrorMessage(getAuthErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -108,21 +129,21 @@ export default function AuthModal({ open, onClose }) {
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tab} onChange={handleTabChange} variant="fullWidth">
-          <Tab label="Iniciar Sesión" sx={{ fontWeight: 700 }} />
-          <Tab label="Crear Cuenta" sx={{ fontWeight: 700 }} />
+          <Tab label="Iniciar Sesión" sx={{ fontWeight: 700, textTransform: 'none' }} />
+          <Tab label="Crear Cuenta" sx={{ fontWeight: 700, textTransform: 'none' }} />
         </Tabs>
       </Box>
 
       <DialogContent sx={{ p: 3 }}>
-        {verificationSent ? (
+        {verificationSent || localAccountCreated ? (
           <Box sx={{ textAlign: 'center', py: 2 }}>
             <Box
               sx={{
                 width: 64,
                 height: 64,
                 borderRadius: '50%',
-                backgroundColor: '#dcfce7',
-                color: '#16a34a',
+                backgroundColor: localAccountCreated ? '#fef3c7' : '#dcfce7',
+                color: localAccountCreated ? '#b45309' : '#16a34a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -130,13 +151,15 @@ export default function AuthModal({ open, onClose }) {
                 mb: 2,
               }}
             >
-              <MarkEmailReadIcon sx={{ fontSize: 36 }} />
+              {localAccountCreated ? <CloudOffIcon sx={{ fontSize: 36 }} /> : <MarkEmailReadIcon sx={{ fontSize: 36 }} />}
             </Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: '#166534', mb: 1 }}>
-              ¡Correo de Verificación Enviado!
+            <Typography variant="h6" sx={{ fontWeight: 800, color: localAccountCreated ? '#92400e' : '#166534', mb: 1 }}>
+              {localAccountCreated ? 'Cuenta guardada en modo local' : '¡Correo de Verificación Enviado!'}
             </Typography>
             <Typography variant="body2" sx={{ color: '#475569', mb: 3 }}>
-              Hemos enviado un enlace de confirmación a <strong>{email}</strong>. Por favor, revisa tu bandeja de entrada o spam para verificar tu identidad.
+              {localAccountCreated
+                ? 'Firebase no está configurado en este entorno. Esta cuenta solo se guardó en este navegador y no se sincronizará con tu proyecto en la nube.'
+                : <>Hemos enviado un enlace de confirmación a <strong>{email}</strong>. Por favor, revisa tu bandeja de entrada o spam para verificar tu identidad.</>}
             </Typography>
             <Button variant="contained" fullWidth onClick={onClose} sx={{ py: 1.2, fontWeight: 700 }}>
               Entendido &mdash; Continuar a la App
@@ -149,6 +172,11 @@ export default function AuthModal({ open, onClose }) {
                 {errorMessage}
               </Alert>
             )}
+            {infoMessage && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                {infoMessage}
+              </Alert>
+            )}
 
             <Stack spacing={2.5}>
               {tab === 1 && (
@@ -157,6 +185,7 @@ export default function AuthModal({ open, onClose }) {
                   placeholder="Ej. Juan Pérez"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
+                  autoComplete="name"
                   fullWidth
                   required
                   size="small"
@@ -176,6 +205,7 @@ export default function AuthModal({ open, onClose }) {
                 placeholder="conductor@empresa.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 fullWidth
                 required
                 size="small"
@@ -194,6 +224,7 @@ export default function AuthModal({ open, onClose }) {
                 placeholder="Mínimo 6 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete={tab === 0 ? 'current-password' : 'new-password'}
                 fullWidth
                 required
                 size="small"
@@ -205,7 +236,12 @@ export default function AuthModal({ open, onClose }) {
                   ),
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        size="small"
+                        aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      >
                         {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                       </IconButton>
                     </InputAdornment>
@@ -220,7 +256,13 @@ export default function AuthModal({ open, onClose }) {
                 fullWidth
                 size="large"
                 disabled={submitting}
-                sx={{ py: 1.2, fontWeight: 700, mt: 1 }}
+                sx={{
+                  py: 1.2,
+                  fontWeight: 700,
+                  mt: 1,
+                  transition: 'transform 160ms ease, box-shadow 160ms ease',
+                  '&:hover': { transform: 'translateY(-1px)', boxShadow: '0 7px 16px rgba(25, 118, 210, 0.25)' },
+                }}
               >
                 {submitting ? (
                   <CircularProgress size={24} color="inherit" />
@@ -230,6 +272,17 @@ export default function AuthModal({ open, onClose }) {
                   'Registrarse y Enviar Verificación'
                 )}
               </Button>
+              {tab === 0 && (
+                <Button
+                  type="button"
+                  size="small"
+                  onClick={handlePasswordReset}
+                  disabled={submitting}
+                  sx={{ alignSelf: 'center', mt: 0.5, color: '#1976d2', fontWeight: 700, textTransform: 'none' }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </Button>
+              )}
             </Stack>
 
             <Divider sx={{ my: 3 }}>
@@ -251,7 +304,8 @@ export default function AuthModal({ open, onClose }) {
                 color: '#475569',
                 borderColor: '#cbd5e1',
                 fontWeight: 600,
-                '&:hover': { backgroundColor: '#f1f5f9' },
+                transition: 'background-color 160ms ease, border-color 160ms ease, transform 160ms ease',
+                '&:hover': { backgroundColor: '#f1f5f9', borderColor: '#94a3b8', transform: 'translateY(-1px)' },
               }}
             >
               Acceso Rápido como Invitado (Modo Demo)
