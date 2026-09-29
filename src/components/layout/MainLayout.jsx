@@ -9,12 +9,12 @@ export default function MainLayout({ children, onExitApp }) {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
-        backgroundColor: '#f8fafc',
+        background: 'linear-gradient(180deg, #f5f9f9 0%, #edf3f4 100%)',
       }}
     >
       <Header onExitApp={onExitApp} />
 
-      <Box component="main" sx={{ flexGrow: 1, py: 4 }}>
+      <Box component="main" sx={{ flexGrow: 1, py: { xs: 2.5, md: 4 } }}>
         <Container maxWidth="xl">{children}</Container>
       </Box>
 
@@ -23,8 +23,8 @@ export default function MainLayout({ children, onExitApp }) {
         component="footer"
         sx={{
           py: 2.5,
-          borderTop: '1px solid #e2e8f0',
-          backgroundColor: '#ffffff',
+          borderTop: '1px solid #dce8e9',
+          backgroundColor: '#f8fbfb',
           textAlign: 'center',
         }}
       >

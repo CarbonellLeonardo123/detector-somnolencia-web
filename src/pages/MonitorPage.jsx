@@ -29,7 +29,7 @@ export default function MonitorPage() {
         }}
       >
         <Box>
-          <Typography variant="overline" sx={{ color: '#0288d1', fontWeight: 800, letterSpacing: '0.12em' }}>
+          <Typography variant="overline" sx={{ color: '#0f766e', fontWeight: 800, letterSpacing: '0.12em' }}>
             CENTRO DE CONTROL
           </Typography>
           <Typography variant="h4" sx={{ color: '#0f172a', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
@@ -83,7 +83,7 @@ export default function MonitorPage() {
       {/* Real-time Charts Section */}
       <Box sx={{ mt: 1 }}>
         <Box sx={{ mb: 2 }}>
-          <Typography variant="overline" sx={{ color: '#0288d1', fontWeight: 800, letterSpacing: '0.1em' }}>
+          <Typography variant="overline" sx={{ color: '#0f766e', fontWeight: 800, letterSpacing: '0.1em' }}>
             TELEMETRÍA
           </Typography>
           <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a' }}>
