@@ -14,11 +14,11 @@ export default function AttentionChart({ data = [] }) {
   return (
     <Card sx={{ height: '100%' }}>
       <CardContent sx={{ p: 2.5 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 0.75, mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e293b' }}>
             Nivel de Atención vs. Probabilidad de Fatiga
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <Typography variant="caption" sx={{ color: '#16a34a', fontWeight: 600 }}>
               ● Atención
             </Typography>
