@@ -31,7 +31,7 @@ export default function MetricsPanel({
       title: 'EAR Ocular Actual',
       value: avgEAR > 0 ? avgEAR.toFixed(3) : '--',
       subtitle: `Umbral de Cierre: ${earThreshold.toFixed(3)}`,
-      icon: <EyeIcon sx={{ color: isEarCritical ? '#dc2626' : '#1976d2' }} />,
+      icon: <EyeIcon sx={{ color: isEarCritical ? '#dc2626' : '#0f766e' }} />,
       bgColor: isEarCritical ? '#fef2f2' : '#f8fafc',
       isWarning: isEarCritical,
       progress: Math.min(100, (avgEAR / 0.4) * 100),
@@ -41,7 +41,7 @@ export default function MetricsPanel({
       title: 'Tasa de Parpadeo',
       value: `${blinkRate} /min`,
       subtitle: 'Rango normal: 12 a 20 /min',
-      icon: <SpeedIcon sx={{ color: '#0288d1' }} />,
+      icon: <SpeedIcon sx={{ color: '#0e7490' }} />,
       bgColor: '#f8fafc',
     },
     {
@@ -71,7 +71,7 @@ export default function MetricsPanel({
   return (
     <Grid container spacing={2}>
       {metricCards.map((metric, idx) => (
-        <Grid item xs={12} sm={6} md={idx === 0 ? 12 : 6} key={metric.title}>
+        <Grid size={{ xs: 12, sm: 6, md: idx === 0 ? 12 : 6 }} key={metric.title}>
           <Card
             sx={{
               backgroundColor: metric.bgColor,

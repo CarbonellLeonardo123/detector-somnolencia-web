@@ -4,15 +4,15 @@ const muiTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1976d2', // Professional Trust Blue
-      light: '#42a5f5',
-      dark: '#1565c0',
+      main: '#0f5b66', // Petrol blue: calm, technical, and trustworthy
+      light: '#2aa9a3',
+      dark: '#0a3f4a',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#0288d1',
-      light: '#03a9f4',
-      dark: '#01579b',
+      main: '#0e7490',
+      light: '#22a6a1',
+      dark: '#155e75',
       contrastText: '#ffffff',
     },
     success: {
@@ -31,12 +31,12 @@ const muiTheme = createTheme({
       dark: '#c62828',
     },
     background: {
-      default: '#f8fafc',
+      default: '#f2f7f7',
       paper: '#ffffff',
     },
     text: {
-      primary: '#1e293b',
-      secondary: '#64748b',
+      primary: '#12343b',
+      secondary: '#5c737b',
     },
   },
   typography: {
@@ -72,15 +72,15 @@ const muiTheme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-          border: '1px solid #e2e8f0',
+          boxShadow: '0 8px 24px rgba(18, 52, 59, 0.06)',
+          border: '1px solid #dce8e9',
         },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 10,
+          borderRadius: 12,
           padding: '8px 20px',
         },
       },

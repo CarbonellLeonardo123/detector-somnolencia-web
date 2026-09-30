@@ -76,13 +76,14 @@ export default function StatusIndicator({ state }) {
     <Paper
       elevation={0}
       sx={{
-        p: 2,
+        p: { xs: 1.5, sm: 2 },
         borderRadius: 3,
         backgroundColor: config.bgColor,
         border: `1.5px solid ${config.borderColor}`,
         display: 'flex',
         alignItems: 'center',
-        gap: 2,
+        gap: 1.5,
+        minHeight: 72,
         transition: 'all 0.3s ease',
         ...(config.isPulsing && {
           animation: 'pulseGlow 1s infinite alternate',
@@ -93,9 +94,22 @@ export default function StatusIndicator({ state }) {
         }),
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>{config.icon}</Box>
+      <Box
+        sx={{
+          width: 42,
+          height: 42,
+          borderRadius: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(255,255,255,0.75)',
+          flexShrink: 0,
+        }}
+      >
+        {config.icon}
+      </Box>
       <Box>
-        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: config.textColor, lineHeight: 1.2 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 850, color: config.textColor, lineHeight: 1.2 }}>
           {config.label}
         </Typography>
         <Typography variant="body2" sx={{ color: '#475569', fontSize: '0.85rem' }}>

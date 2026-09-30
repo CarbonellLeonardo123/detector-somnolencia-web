@@ -39,10 +39,10 @@ export default function WebcamFeed() {
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardContent sx={{ p: 2.5, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5 }, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Title & Status Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               Cámara del Conductor
             </Typography>
@@ -63,7 +63,7 @@ export default function WebcamFeed() {
               label="MediaPipe IA Activo"
               color="primary"
               variant="filled"
-              sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+              sx={{ fontWeight: 700, fontSize: '0.68rem', whiteSpace: 'nowrap' }}
             />
           )}
         </Box>
@@ -73,7 +73,8 @@ export default function WebcamFeed() {
           sx={{
             position: 'relative',
             width: '100%',
-            aspectRatio: '4/3',
+            aspectRatio: { xs: '4/3', sm: '16/10' },
+            minHeight: { xs: 270, sm: 330 },
             maxHeight: 460,
             borderRadius: 3,
             overflow: 'hidden',
@@ -204,6 +205,8 @@ export default function WebcamFeed() {
                 fontSize: '1.05rem',
                 fontWeight: 700,
                 boxShadow: '0 4px 14px rgba(25, 118, 210, 0.4)',
+                transition: 'transform 160ms ease, box-shadow 160ms ease',
+                '&:hover': { transform: 'translateY(-1px)', boxShadow: '0 8px 20px rgba(25, 118, 210, 0.45)' },
               }}
             >
               Iniciar Monitoreo en Vivo
@@ -221,6 +224,8 @@ export default function WebcamFeed() {
                 fontSize: '1.05rem',
                 fontWeight: 700,
                 boxShadow: '0 4px 14px rgba(211, 47, 47, 0.4)',
+                transition: 'transform 160ms ease, box-shadow 160ms ease',
+                '&:hover': { transform: 'translateY(-1px)', boxShadow: '0 8px 20px rgba(211, 47, 47, 0.45)' },
               }}
             >
               Detener Monitoreo

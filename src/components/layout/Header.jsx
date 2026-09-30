@@ -9,7 +9,6 @@ import {
   Chip,
   Stack,
   Tooltip,
-  IconButton,
   Menu,
   MenuItem,
   Avatar,
@@ -18,19 +17,13 @@ import {
 import {
   Visibility as VisibilityIcon,
   History as HistoryIcon,
-  CloudDone as CloudDoneIcon,
-  CloudOff as CloudOffIcon,
-  DirectionsCar as DirectionsCarIcon,
   Functions as FunctionsIcon,
-  AccountCircle as AccountCircleIcon,
   Logout as LogoutIcon,
   Person as PersonIcon,
   LocalShipping as LocalShippingIcon,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
-import { isFirebaseConfigured } from '../../services/firebase/config';
 import { useAuth } from '../../context/AuthContext';
-import FirebaseConfigModal from '../history/FirebaseConfigModal';
 import AuthModal from '../auth/AuthModal';
 import MathModelModal from '../math/MathModelModal';
 
@@ -59,19 +52,36 @@ export default function Header({ onExitApp }) {
     }
   };
 
+  const navItemSx = (active) => ({
+    minHeight: 38,
+    px: { xs: 1.1, md: 1.5 },
+    borderRadius: 2,
+    color: active ? '#0f5b66' : '#5c737b',
+    backgroundColor: active ? '#dff3f1' : 'transparent',
+    border: active ? '1px solid #b8e4df' : '1px solid transparent',
+    fontWeight: active ? 800 : 700,
+    transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease',
+    '&:hover': {
+      color: '#0f5b66',
+      backgroundColor: '#e7f5f3',
+      borderColor: '#c7e9e5',
+    },
+  });
+
   return (
     <>
       <AppBar
         position="sticky"
         elevation={0}
         sx={{
-          backgroundColor: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
-          color: '#1e293b',
+          backgroundColor: '#fbfdfd',
+          borderBottom: '1px solid #dce8e9',
+          color: '#12343b',
+          boxShadow: '0 2px 14px rgba(18, 52, 59, 0.04)',
         }}
       >
         <Container maxWidth="xl">
-          <Toolbar disableGutters sx={{ justifyContent: 'space-between', minHeight: 70, flexWrap: 'wrap', gap: 1 }}>
+          <Toolbar disableGutters sx={{ justifyContent: 'space-between', minHeight: { xs: 76, md: 70 }, flexWrap: 'wrap', gap: 1.25, py: 1 }}>
             {/* Logo & Branding */}
             <Box
               component={Link}
@@ -89,12 +99,12 @@ export default function Header({ onExitApp }) {
                   width: 42,
                   height: 42,
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #1976d2 0%, #0288d1 100%)',
+                  background: 'linear-gradient(135deg, #0f5b66 0%, #22a6a1 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#fff',
-                  boxShadow: '0 4px 12px rgba(25, 118, 210, 0.35)',
+                  boxShadow: '0 5px 14px rgba(15, 91, 102, 0.28)',
                 }}
               >
                 <VisibilityIcon fontSize="medium" />
@@ -106,9 +116,7 @@ export default function Header({ onExitApp }) {
                     fontWeight: 900,
                     fontSize: '1.25rem',
                     lineHeight: 1.1,
-                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
+                    color: '#12343b',
                   }}
                 >
                   SomnoGuard
@@ -123,15 +131,27 @@ export default function Header({ onExitApp }) {
             </Box>
 
             {/* Navigation Buttons (Cleaned) */}
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+            <Box
+              component="nav"
+              aria-label="Navegación principal"
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.25,
+                p: 0.5,
+                borderRadius: 2.5,
+                backgroundColor: '#f0f6f6',
+                border: '1px solid #dce8e9',
+                flexWrap: { xs: 'wrap', md: 'nowrap' },
+              }}
+            >
               <Button
                 component={Link}
                 to="/"
-                variant={location.pathname === '/' ? 'contained' : 'text'}
-                color="primary"
+                variant="text"
                 size="small"
                 startIcon={<VisibilityIcon />}
-                sx={{ fontWeight: 700 }}
+                sx={navItemSx(location.pathname === '/')}
               >
                 Monitor
               </Button>
@@ -139,11 +159,10 @@ export default function Header({ onExitApp }) {
               <Button
                 component={Link}
                 to="/historial"
-                variant={location.pathname === '/historial' ? 'contained' : 'text'}
-                color="primary"
+                variant="text"
                 size="small"
                 startIcon={<HistoryIcon />}
-                sx={{ fontWeight: 700 }}
+                sx={navItemSx(location.pathname === '/historial')}
               >
                 Historial
               </Button>
@@ -151,16 +170,15 @@ export default function Header({ onExitApp }) {
               <Button
                 component={Link}
                 to="/flota"
-                variant={location.pathname === '/flota' ? 'contained' : 'text'}
-                color="primary"
+                variant="text"
                 size="small"
                 startIcon={<LocalShippingIcon />}
-                endIcon={<Chip label="Admin" size="small" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 800, bgcolor: location.pathname === '/flota' ? '#ffffff33' : '#e2e8f0', color: location.pathname === '/flota' ? '#ffffff' : '#475569' }} />}
-                sx={{ fontWeight: 700 }}
+                endIcon={<Chip label="Admin" size="small" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 800, bgcolor: location.pathname === '/flota' ? '#b8e4df' : '#dce8e9', color: '#31545c' }} />}
+                sx={navItemSx(location.pathname === '/flota')}
               >
                 Panel Flota
               </Button>
-            </Stack>
+            </Box>
 
             {/* Right Tools: Math Documentation & User Profile */}
             <Stack direction="row" spacing={1.5} alignItems="center">
@@ -174,8 +192,8 @@ export default function Header({ onExitApp }) {
                   onClick={() => setMathModalOpen(true)}
                   sx={{
                     fontWeight: 700,
-                    borderColor: '#bae6fd',
-                    color: '#0288d1',
+                    borderColor: '#b8e4df',
+                    color: '#0f5b66',
                     borderRadius: 2,
                     textTransform: 'none',
                     fontSize: '0.8rem',
@@ -196,7 +214,7 @@ export default function Header({ onExitApp }) {
                       color="inherit"
                       size="small"
                       startIcon={
-                        <Avatar sx={{ width: 28, height: 28, bgcolor: user?.isAnonymous ? '#f59e0b' : '#1976d2', fontSize: '0.8rem' }}>
+                        <Avatar sx={{ width: 28, height: 28, bgcolor: user?.isAnonymous ? '#d97706' : '#0f5b66', fontSize: '0.8rem' }}>
                           {user?.isAnonymous ? 'I' : (profile?.displayName?.charAt(0) || user?.email?.charAt(0) || 'C')}
                         </Avatar>
                       }
@@ -228,7 +246,7 @@ export default function Header({ onExitApp }) {
                   size="small"
                   startIcon={<PersonIcon />}
                   onClick={() => setAuthModalOpen(true)}
-                  sx={{ fontWeight: 700 }}
+                  sx={{ fontWeight: 700, borderColor: '#b8e4df', color: '#0f5b66' }}
                 >
                   Iniciar Sesión
                 </Button>

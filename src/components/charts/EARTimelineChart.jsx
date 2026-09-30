@@ -15,12 +15,12 @@ export default function EARTimelineChart({ data = [], earThreshold = 0.21 }) {
   return (
     <Card sx={{ height: '100%' }}>
       <CardContent sx={{ p: 2.5 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 0.75, mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e293b' }}>
-            Historial de EAR (Apertura Ocular en Tiempo Real)
+            Historial de EAR
           </Typography>
           <Typography variant="caption" sx={{ color: '#dc2626', fontWeight: 600 }}>
-            Línea Roja: Umbral de Cierre ({earThreshold.toFixed(2)})
+            Umbral de cierre: {earThreshold.toFixed(2)}
           </Typography>
         </Box>
 
