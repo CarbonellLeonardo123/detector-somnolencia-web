@@ -403,12 +403,7 @@ export default function WelcomeAuthPage({ onEnterApp }) {
         </Card>
 
         {/* Footer Actions */}
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ mt: 3, px: 1, flexWrap: 'wrap', gap: 1 }}
-        >
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
           <Button
             size="small"
             startIcon={<FunctionsIcon />}
@@ -417,16 +412,7 @@ export default function WelcomeAuthPage({ onEnterApp }) {
           >
             Ver Ecuaciones y Algoritmos
           </Button>
-
-          <Button
-            size="small"
-            startIcon={<ShieldIcon />}
-            onClick={onOpenAdmin}
-            sx={{ color: '#94a3b8', fontWeight: 600, '&:hover': { color: '#38bdf8' } }}
-          >
-            Acceso Supervisores (Admin)
-          </Button>
-        </Stack>
+        </Box>
       </Container>
 
       {/* Math Modal */}
