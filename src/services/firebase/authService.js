@@ -149,24 +149,39 @@ export async function loginAsGuest() {
     return { user: guestUser };
   }
 
-  const cred = await signInAnonymously(auth);
+  try {
+    const cred = await signInAnonymously(auth);
 
-  if (db && cred.user) {
-    setDoc(
-      doc(db, 'users', cred.user.uid),
-      {
-        uid: cred.user.uid,
-        displayName: guestName,
-        isAnonymous: true,
-        role: 'guest',
-        lastLogin: serverTimestamp(),
-        createdAt: serverTimestamp(),
-      },
-      { merge: true }
-    ).catch(() => {});
+    if (db && cred.user) {
+      setDoc(
+        doc(db, 'users', cred.user.uid),
+        {
+          uid: cred.user.uid,
+          displayName: guestName,
+          isAnonymous: true,
+          role: 'guest',
+          lastLogin: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      ).catch(() => {});
+    }
+
+    return cred;
+  } catch (err) {
+    console.warn('Firebase anonymous sign in failed, falling back to demo guest:', err);
+    const guestUser = {
+      uid: 'guest_' + Math.random().toString(36).substring(2, 9),
+      displayName: guestName,
+      isAnonymous: true,
+      emailVerified: false,
+      role: 'guest',
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+    };
+    localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(guestUser));
+    return { user: guestUser };
   }
-
-  return cred;
 }
 
 /**

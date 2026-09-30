@@ -110,13 +110,14 @@ export default function WelcomeAuthPage({ onEnterApp }) {
 
   const handleGuestLogin = async () => {
     setSubmitting(true);
+    setErrorMessage('');
     try {
       await loginGuest();
-      onEnterApp();
     } catch (err) {
-      console.error('Guest login error:', err);
+      console.warn('Guest login fallback:', err);
     } finally {
       setSubmitting(false);
+      onEnterApp();
     }
   };
 
