@@ -167,7 +167,8 @@ export default function AuthModal({ open, onClose }) {
             </Button>
           </Box>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <>
+            <form onSubmit={handleSubmit}>
             {errorMessage && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {errorMessage}
@@ -285,8 +286,10 @@ export default function AuthModal({ open, onClose }) {
                 </Button>
               )}
             </Stack>
+          </form>
 
-            <Divider sx={{ my: 3 }}>
+          <Box sx={{ mt: 3 }}>
+            <Divider sx={{ mb: 3 }}>
               <Typography variant="caption" sx={{ color: '#94a3b8' }}>
                 O BIEN
               </Typography>
@@ -294,6 +297,7 @@ export default function AuthModal({ open, onClose }) {
 
             {/* Quick Demo Access */}
             <Button
+              type="button"
               variant="outlined"
               color="inherit"
               fullWidth
@@ -311,8 +315,9 @@ export default function AuthModal({ open, onClose }) {
             >
               Acceso Rápido como Invitado (Modo Demo)
             </Button>
-          </form>
-        )}
+          </Box>
+        </>
+      )}
       </DialogContent>
     </Dialog>
   );

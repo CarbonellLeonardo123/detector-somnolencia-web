@@ -241,7 +241,8 @@ export default function WelcomeAuthPage({ onEnterApp }) {
                 </Button>
               </Box>
             ) : (
-              <form onSubmit={handleSubmit}>
+              <>
+                <form onSubmit={handleSubmit}>
                 {errorMessage && (
                   <Alert severity="error" sx={{ mb: 2.5 }}>
                     {errorMessage}
@@ -366,8 +367,10 @@ export default function WelcomeAuthPage({ onEnterApp }) {
                     </Button>
                   )}
                 </Stack>
+              </form>
 
-                <Divider sx={{ my: 3 }}>
+              <Box sx={{ mt: 3 }}>
+                <Divider sx={{ mb: 3 }}>
                   <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700 }}>
                     O INGRESA SIN REGISTRO
                   </Typography>
@@ -375,6 +378,7 @@ export default function WelcomeAuthPage({ onEnterApp }) {
 
                 {/* Instant Guest / Demo Button */}
                 <Button
+                  type="button"
                   variant="outlined"
                   color="inherit"
                   fullWidth
@@ -398,8 +402,9 @@ export default function WelcomeAuthPage({ onEnterApp }) {
                 >
                   Entrar como Conductor Invitado (Modo Demo)
                 </Button>
-              </form>
-            )}
+              </Box>
+            </>
+          )}
           </CardContent>
         </Card>
 
