@@ -6,6 +6,7 @@ import {
   sendPasswordResetEmail,
   signInAnonymously,
   updateProfile,
+  reload,
 } from 'firebase/auth';
 import {
   doc,
@@ -59,13 +60,8 @@ export async function registerWithEmail(email, password, displayName) {
   }
 
   // Send official Firebase email verification
-  let verificationSent = false;
-  try {
-    await sendEmailVerification(user);
-    verificationSent = true;
-  } catch (err) {
-    console.warn('Could not send verification email:', err);
-  }
+  auth.languageCode = 'es';
+  await sendEmailVerification(user);
 
   // Create user profile document in Firestore
   if (db) {
@@ -83,7 +79,7 @@ export async function registerWithEmail(email, password, displayName) {
     }
   }
 
-  return { user, verificationSent };
+  return { user, verificationSent: true };
 }
 
 /**
@@ -112,6 +108,13 @@ export async function loginWithEmail(email, password) {
   }
 
   const cred = await signInWithEmailAndPassword(auth, email, password);
+  await reload(cred.user);
+  if (!cred.user.emailVerified) {
+    await signOut(auth);
+    const error = new Error('Debes verificar tu correo antes de iniciar sesión.');
+    error.code = 'auth/email-not-verified';
+    throw error;
+  }
 
   // Update last login in Firestore
   if (db && cred.user) {
@@ -189,6 +192,7 @@ export async function loginAsGuest() {
  */
 export async function resendVerificationEmail(user) {
   if (!user || user.isAnonymous) return false;
+  auth.languageCode = 'es';
   await sendEmailVerification(user);
   return true;
 }

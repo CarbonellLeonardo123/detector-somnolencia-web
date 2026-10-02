@@ -160,10 +160,18 @@ export default function AuthModal({ open, onClose }) {
             <Typography variant="body2" sx={{ color: '#475569', mb: 3 }}>
               {localAccountCreated
                 ? 'Firebase no está configurado en este entorno. Esta cuenta solo se guardó en este navegador y no se sincronizará con tu proyecto en la nube.'
-                : <>Hemos enviado un enlace de confirmación a <strong>{email}</strong>. Por favor, revisa tu bandeja de entrada o spam para verificar tu identidad.</>}
+                : <>Hemos enviado un enlace de confirmación a <strong>{email}</strong>. Por favor, confirma tu correo antes de iniciar sesión; revisa también tu bandeja de spam.</>}
             </Typography>
-            <Button variant="contained" fullWidth onClick={onClose} sx={{ py: 1.2, fontWeight: 700 }}>
-              Entendido &mdash; Continuar a la App
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => {
+                setVerificationSent(false);
+                setTab(0);
+              }}
+              sx={{ py: 1.2, fontWeight: 700 }}
+            >
+              Ir a iniciar sesión
             </Button>
           </Box>
         ) : (

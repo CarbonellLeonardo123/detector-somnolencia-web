@@ -228,16 +228,19 @@ export default function WelcomeAuthPage({ onEnterApp }) {
                 <Typography variant="body2" sx={{ color: '#475569', mb: 3 }}>
                   {localAccountCreated
                     ? 'Firebase no está configurado en este entorno. Esta cuenta solo se guardó en este navegador y no se sincronizará con tu proyecto en la nube.'
-                    : <>Hemos enviado un correo de verificación oficial a <strong>{email}</strong>. Revisa tu bandeja de entrada o spam para confirmar tu cuenta.</>}
+                    : <>Enviamos un enlace para confirmar que puedes recibir correo en <strong>{email}</strong>. Confirma la dirección antes de iniciar sesión; revisa también Spam.</>}
                 </Typography>
                 <Button
                   variant="contained"
                   fullWidth
-                  onClick={onEnterApp}
+                  onClick={() => {
+                    setVerificationSent(false);
+                    setTab(0);
+                  }}
                   size="large"
                   sx={{ py: 1.5, fontWeight: 800 }}
                 >
-                  Continuar al Monitor de Conducción
+                  Ir a iniciar sesión
                 </Button>
               </Box>
             ) : (

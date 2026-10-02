@@ -12,6 +12,8 @@ export function getAuthErrorMessage(error) {
       return 'El formato del correo electrónico no es válido.';
     case 'auth/operation-not-allowed':
       return 'El registro con correo y contraseña no está habilitado en Firebase. Activa este proveedor en Authentication → Sign-in method.';
+    case 'auth/email-not-verified':
+      return 'Confirma tu dirección desde el enlace que enviamos a tu correo y luego inicia sesión.';
     case 'auth/network-request-failed':
       return 'No se pudo conectar con Firebase. Revisa tu conexión e inténtalo nuevamente.';
     case 'auth/too-many-requests':
