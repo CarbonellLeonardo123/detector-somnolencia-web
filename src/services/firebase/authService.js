@@ -289,9 +289,46 @@ export async function getUserProfile(uid) {
 }
 
 /**
- * Real Firestore query for the Fleet Admin Panel:
- * Returns all real users registered in Firestore with their registration and last login timestamps!
+ * Real-time subscription to all registered users in Firestore
  */
+export function subscribeAllRegisteredUsers(onUsersChanged) {
+  if (isFirebaseConfigured && db) {
+    try {
+      const usersRef = collection(db, 'users');
+      const unsubscribe = onSnapshot(
+        usersRef,
+        (snapshot) => {
+          const list = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            list.push({
+              id: docSnap.id,
+              uid: data.uid || docSnap.id,
+              ...data,
+              createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt || null),
+              lastLogin: data.lastLogin?.toDate ? data.lastLogin.toDate() : (data.lastLogin || null),
+            });
+          });
+          list.sort((a, b) => new Date(b.createdAt || b.lastLogin || 0) - new Date(a.createdAt || a.lastLogin || 0));
+          onUsersChanged(list, null);
+        },
+        (error) => {
+          console.warn('Firestore onSnapshot users error:', error);
+          onUsersChanged([], error);
+        }
+      );
+      return unsubscribe;
+    } catch (e) {
+      console.warn('Failed to subscribe to users in Firestore:', e);
+    }
+  }
+
+  const local = JSON.parse(localStorage.getItem(LOCAL_STORAGE_USERS_KEY) || '[]');
+  onUsersChanged(local, null);
+  return () => {};
+}
+
+// Fallback to local storage list
 export async function getAllRegisteredUsers() {
   if (isFirebaseConfigured && db) {
     try {
@@ -309,6 +346,7 @@ export async function getAllRegisteredUsers() {
         const data = docSnap.data();
         list.push({
           id: docSnap.id,
+          uid: data.uid || docSnap.id,
           ...data,
           createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt || null),
           lastLogin: data.lastLogin?.toDate ? data.lastLogin.toDate() : (data.lastLogin || null),

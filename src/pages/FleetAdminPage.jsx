@@ -40,7 +40,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { getAllFleetSessions } from '../services/firebase/sessionService';
-import { getAllRegisteredUsers } from '../services/firebase/authService';
+import { getAllRegisteredUsers, subscribeAllRegisteredUsers } from '../services/firebase/authService';
 import { isFirebaseConfigured } from '../services/firebase/config';
 import { formatDuration, formatDateTime, getRiskLevelInfo } from '../utils/formatters';
 import FirebaseConfigModal from '../components/history/FirebaseConfigModal';
@@ -57,6 +57,7 @@ export default function FleetAdminPage() {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [firestoreRulesWarning, setFirestoreRulesWarning] = useState(false);
 
   // Data tabs: 0 = Usuarios Registrados, 1 = Sesiones de Conducción
   const [activeTab, setActiveTab] = useState(0);
@@ -109,9 +110,41 @@ export default function FleetAdminPage() {
   };
 
   useEffect(() => {
-    if (isAdminAuthenticated) {
-      loadData();
-    }
+    if (!isAdminAuthenticated) return;
+
+    loadData();
+
+    // Subscribe to live users updates
+    const unsubscribeUsers = subscribeAllRegisteredUsers((liveUsers, error) => {
+      if (error && (error.code === 'permission-denied' || String(error).includes('permission'))) {
+        setFirestoreRulesWarning(true);
+      } else {
+        setFirestoreRulesWarning(false);
+      }
+
+      if (liveUsers && liveUsers.length > 0) {
+        let merged = [...liveUsers];
+        if (user && !user.isAnonymous) {
+          const already = merged.some((u) => u.uid === user.uid || u.email === user.email);
+          if (!already) {
+            merged.unshift({
+              uid: user.uid,
+              id: user.uid,
+              email: user.email,
+              displayName: user.displayName || user.email?.split('@')[0] || 'Conductor',
+              role: 'driver',
+              createdAt: new Date(),
+              lastLogin: new Date(),
+            });
+          }
+        }
+        setRegisteredUsers(merged);
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribeUsers === 'function') unsubscribeUsers();
+    };
   }, [isAdminAuthenticated, user?.uid]);
 
   // If not unlocked, display Password Gate Dialog
@@ -345,6 +378,17 @@ export default function FleetAdminPage() {
               variant="outlined"
             />
           </Box>
+
+          {firestoreRulesWarning && (
+            <Alert severity="warning" sx={{ m: 2.5, borderRadius: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>
+                Reglas de Firestore pendientes en Firebase Console
+              </Typography>
+              <Typography variant="body2">
+                Para que el Panel de Administración pueda consultar los conductores registrados desde otros teléfonos o computadoras, asegúrate de que en <strong>Firebase Console → Firestore Database → Reglas (Rules)</strong> tengas permitido el acceso de lectura (ej. <code>allow read, write: if true;</code>).
+              </Typography>
+            </Alert>
+          )}
 
           {registeredUsers.length === 0 ? (
             <Box sx={{ p: 5, textAlign: 'center', color: '#64748b' }}>
