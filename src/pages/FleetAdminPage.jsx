@@ -84,7 +84,22 @@ export default function FleetAdminPage() {
         getAllRegisteredUsers(),
         getAllFleetSessions(100),
       ]);
-      setRegisteredUsers(usersList || []);
+      let finalUsers = [...(usersList || [])];
+      if (user && !user.isAnonymous) {
+        const alreadyInList = finalUsers.some((u) => u.uid === user.uid || u.email === user.email);
+        if (!alreadyInList) {
+          finalUsers.unshift({
+            uid: user.uid,
+            id: user.uid,
+            email: user.email,
+            displayName: user.displayName || user.email?.split('@')[0] || 'Conductor',
+            role: 'driver',
+            createdAt: new Date(),
+            lastLogin: new Date(),
+          });
+        }
+      }
+      setRegisteredUsers(finalUsers);
       setSessions(sessionsList || []);
     } catch (e) {
       console.warn('Error loading real fleet data:', e);

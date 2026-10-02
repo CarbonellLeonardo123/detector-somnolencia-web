@@ -116,17 +116,34 @@ export async function loginWithEmail(email, password) {
     throw error;
   }
 
-  // Update last login in Firestore
+  // Ensure user profile document exists and is updated in Firestore
   if (db && cred.user) {
-    setDoc(
-      doc(db, 'users', cred.user.uid),
-      {
-        lastLogin: serverTimestamp(),
-        email: cred.user.email,
-        displayName: cred.user.displayName || cred.user.email.split('@')[0],
-      },
-      { merge: true }
-    ).catch(() => {});
+    try {
+      const userDocRef = doc(db, 'users', cred.user.uid);
+      const existingDoc = await getDoc(userDocRef);
+      if (!existingDoc.exists()) {
+        await setDoc(userDocRef, {
+          uid: cred.user.uid,
+          email: cred.user.email,
+          displayName: cred.user.displayName || cred.user.email.split('@')[0],
+          role: 'driver',
+          createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
+        });
+      } else {
+        await setDoc(
+          userDocRef,
+          {
+            lastLogin: serverTimestamp(),
+            email: cred.user.email,
+            displayName: cred.user.displayName || cred.user.email.split('@')[0],
+          },
+          { merge: true }
+        );
+      }
+    } catch (e) {
+      console.warn('Could not sync user to Firestore on login:', e);
+    }
   }
 
   return cred;
@@ -215,6 +232,39 @@ export async function logoutUser() {
   sessionStorage.removeItem('somnoguard_admin_authenticated');
   if (isFirebaseConfigured && auth) {
     await signOut(auth);
+  }
+}
+
+/**
+ * Ensures an authenticated user has a registered document in Firestore (/users/{uid})
+ */
+export async function ensureUserInFirestore(user) {
+  if (!isFirebaseConfigured || !db || !user || user.isAnonymous) return;
+  try {
+    const userDocRef = doc(db, 'users', user.uid);
+    const existingDoc = await getDoc(userDocRef);
+    if (!existingDoc.exists()) {
+      await setDoc(userDocRef, {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email.split('@')[0],
+        role: 'driver',
+        createdAt: serverTimestamp(),
+        lastLogin: serverTimestamp(),
+      });
+    } else {
+      await setDoc(
+        userDocRef,
+        {
+          lastLogin: serverTimestamp(),
+          email: user.email,
+          displayName: user.displayName || user.email.split('@')[0],
+        },
+        { merge: true }
+      );
+    }
+  } catch (err) {
+    console.warn('Error in ensureUserInFirestore:', err);
   }
 }
 

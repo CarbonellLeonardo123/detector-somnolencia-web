@@ -9,6 +9,7 @@ import {
   resendVerificationEmail,
   resetPassword,
   getUserProfile,
+  ensureUserInFirestore,
 } from '../services/firebase/authService';
 
 const AuthContext = createContext(null);
@@ -44,6 +45,9 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        if (!currentUser.isAnonymous) {
+          await ensureUserInFirestore(currentUser);
+        }
         // Load additional firestore profile
         const userProf = await getUserProfile(currentUser.uid);
         setProfile(userProf || {
