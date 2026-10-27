@@ -1,0 +1,18 @@
+{
+  "modelName": "SomnoGuard MLP académico base",
+  "trainingSource": "synthetic-demo",
+  "validated": false,
+  "intendedUse": "Demostración académica de una red neuronal personalizada para clasificar ventanas agregadas de conducción.",
+  "notIntendedFor": [
+    "diagnóstico médico",
+    "decisiones automáticas sobre trabajadores",
+    "sustituir protocolos de seguridad vial"
+  ],
+  "trainingArchitecture": [7, 32, 16, 3],
+  "classes": ["normal", "atencion", "peligro"],
+  "limitations": [
+    "El artefacto incluido usa datos sintéticos.",
+    "Debe reentrenarse y validarse con datos consentidos de la empresa.",
+    "La exactitud de demostración no representa desempeño en producción."
+  ]
+}

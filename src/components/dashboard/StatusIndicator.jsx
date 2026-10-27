@@ -39,7 +39,7 @@ export default function StatusIndicator({ state }) {
           borderColor: '#fed7aa',
           textColor: '#c2410c',
         };
-      case DETECTION_STATES.PELIGRO:
+      case DETECTION_STATES.DANGER:
         return {
           icon: <ErrorIcon sx={{ fontSize: 28, color: '#dc2626' }} />,
           label: 'ESTADO: ¡PELIGRO CRÍTICO!',

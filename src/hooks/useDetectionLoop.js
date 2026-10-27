@@ -4,6 +4,21 @@ import { processEyeMetrics } from '../services/detection/earCalculator';
 import { DrowsinessEngine } from '../services/detection/drowsinessEngine';
 import { CONFIG, DETECTION_STATES } from '../utils/constants';
 
+export function mapFrameResultToUiState(frameResult) {
+  return {
+    state: frameResult.state,
+    faceDetected: frameResult.faceDetected,
+    avgEAR: frameResult.avgEAR,
+    earThreshold: frameResult.earThreshold,
+    fatigueProbability: frameResult.fatigueProbability,
+    attentionScore: frameResult.attentionScore,
+    blinkRate: frameResult.blinkRate,
+    totalBlinks: frameResult.totalBlinks,
+    microsleepCount: frameResult.microsleepCount,
+    calibrationProgress: frameResult.calibrationProgress ?? 0,
+  };
+}
+
 export function useDetectionLoop({
   videoRef,
   canvasRef,
@@ -60,6 +75,8 @@ export function useDetectionLoop({
 
   useEffect(() => {
     if (!isStreaming || !isModelReady) {
+      // Synchronize the loop's imperative cancellation with the stream lifecycle.
+      // oxlint-disable-next-line react/set-state-in-effect
       stopDetection();
       return;
     }
@@ -111,18 +128,7 @@ export function useDetectionLoop({
           if (now - lastUiUpdateRef.current >= CONFIG.UI_UPDATE_INTERVAL_MS) {
             lastUiUpdateRef.current = now;
 
-            setUiState({
-              state: frameResult.state,
-              faceDetected: frameResult.faceDetected,
-              avgEAR: frameResult.avgEAR,
-              earThreshold: frameResult.earThreshold,
-              fatigueProbability: frameResult.fatigueProbability,
-              attentionScore: frameResult.attentionScore,
-              blinkRate: frameResult.blinkRate,
-              totalBlinks: frameResult.totalBlinks,
-              microsleepCount: frameResult.microsleepCount,
-              calibrationProgress: frameResult.calibrationProgress || 100,
-            });
+            setUiState(mapFrameResultToUiState(frameResult));
 
             // Append to chart history (keep up to 40 items)
             if (frameResult.faceDetected) {

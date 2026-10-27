@@ -6,6 +6,8 @@ export function getAuthErrorMessage(error) {
     case 'auth/invalid-credential':
     case 'auth/user-not-found':
       return 'Correo o contraseña incorrectos. Verifica tus datos.';
+    case 'auth/local-account-upgrade-required':
+      return 'Esta cuenta local pertenece a una versión anterior. Vuelve a registrarla con el mismo correo para crear una contraseña segura y conservar su identidad.';
     case 'auth/weak-password':
       return 'La contraseña debe tener al menos 6 caracteres.';
     case 'auth/invalid-email':

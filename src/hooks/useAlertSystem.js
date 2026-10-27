@@ -1,10 +1,25 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 
+export function createAlertEpisodeController() {
+  let acknowledged = false;
+
+  return {
+    canActivate: () => !acknowledged,
+    acknowledge: () => {
+      acknowledged = true;
+    },
+    clear: () => {
+      acknowledged = false;
+    },
+  };
+}
+
 export function useAlertSystem() {
   const audioContextRef = useRef(null);
   const oscillatorRef = useRef(null);
   const gainNodeRef = useRef(null);
   const intervalRef = useRef(null);
+  const episodeRef = useRef(createAlertEpisodeController());
 
   const [isAlarmPlaying, setIsAlarmPlaying] = useState(false);
   const [isVisualAlertActive, setIsVisualAlertActive] = useState(false);
@@ -24,6 +39,8 @@ export function useAlertSystem() {
 
   // Start sound alarm
   const startAlarm = useCallback(() => {
+    if (!episodeRef.current.canActivate()) return;
+
     initAudio();
     setIsAlarmPlaying(true);
     setIsVisualAlertActive(true);
@@ -62,8 +79,7 @@ export function useAlertSystem() {
     }
   }, [initAudio]);
 
-  // Stop sound alarm
-  const stopAlarm = useCallback(() => {
+  const silenceAlarm = useCallback(() => {
     setIsAlarmPlaying(false);
     setIsVisualAlertActive(false);
 
@@ -76,7 +92,7 @@ export function useAlertSystem() {
       try {
         oscillatorRef.current.stop();
         oscillatorRef.current.disconnect();
-      } catch (e) {
+      } catch {
         // already stopped
       }
       oscillatorRef.current = null;
@@ -85,28 +101,43 @@ export function useAlertSystem() {
     if (gainNodeRef.current) {
       try {
         gainNodeRef.current.disconnect();
-      } catch (e) {
+      } catch {
         // already disconnected
       }
       gainNodeRef.current = null;
     }
   }, []);
 
+  // Acknowledges the current critical episode. It remains silent until risk clears.
+  const acknowledgeAlarm = useCallback(() => {
+    episodeRef.current.acknowledge();
+    silenceAlarm();
+  }, [silenceAlarm]);
+
+  // Clears the episode and rearms the alarm for a future critical event.
+  const clearAlarm = useCallback(() => {
+    episodeRef.current.clear();
+    silenceAlarm();
+  }, [silenceAlarm]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopAlarm();
+      silenceAlarm();
       if (audioContextRef.current) {
         audioContextRef.current.close().catch(() => {});
       }
     };
-  }, [stopAlarm]);
+  }, [silenceAlarm]);
 
   return {
     isAlarmPlaying,
     isVisualAlertActive,
     startAlarm,
-    stopAlarm,
+    acknowledgeAlarm,
+    clearAlarm,
+    // Backward-compatible alias used by non-critical cleanup paths.
+    stopAlarm: clearAlarm,
     initAudio,
   };
 }

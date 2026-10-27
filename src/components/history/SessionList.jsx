@@ -9,21 +9,21 @@ import {
 import SessionCard from './SessionCard';
 import { subscribeUserSessions, deleteSession, getUserSessions } from '../../services/firebase/sessionService';
 import { isFirebaseConfigured } from '../../services/firebase/config';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authContextValue';
 
 export default function SessionList() {
   const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadedUserId, setLoadedUserId] = useState(null);
 
   useEffect(() => {
     if (!user?.uid) return;
 
-    setLoading(true);
-
     // Set up real-time listener for Firestore / local fallback
     const unsubscribe = subscribeUserSessions(user.uid, (data) => {
       setSessions(data);
+      setLoadedUserId(user.uid);
       setLoading(false);
     });
 
@@ -49,7 +49,9 @@ export default function SessionList() {
     setLoading(false);
   };
 
-  if (loading) {
+  const isLoading = loading || loadedUserId !== user?.uid;
+
+  if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
         <CircularProgress />

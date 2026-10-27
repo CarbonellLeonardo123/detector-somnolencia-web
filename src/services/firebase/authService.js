@@ -22,36 +22,126 @@ import { auth, db, isFirebaseConfigured } from './config';
 
 const LOCAL_STORAGE_USERS_KEY = 'somnoguard_registered_users_list';
 const LOCAL_STORAGE_USER_KEY = 'somnoguard_user_profile';
+const LOCAL_STORAGE_ACCOUNTS_KEY = 'somnoguard_local_accounts';
+const PASSWORD_HASH_ITERATIONS = 100000;
+
+function createAuthError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function readLocalJson(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function base64ToBytes(value) {
+  const binary = atob(value);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+async function derivePasswordHash(password, salt) {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: base64ToBytes(salt),
+      iterations: PASSWORD_HASH_ITERATIONS,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    256
+  );
+  return bytesToBase64(new Uint8Array(bits));
+}
+
+async function createPasswordCredentials(password) {
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const passwordSalt = bytesToBase64(saltBytes);
+  return {
+    passwordSalt,
+    passwordHash: await derivePasswordHash(password, passwordSalt),
+  };
+}
+
+function toPublicUser(account) {
+  if (!account) return null;
+  const user = { ...account };
+  delete user.passwordHash;
+  delete user.passwordSalt;
+  return user;
+}
+
+function saveCurrentLocalUser(user) {
+  localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
+}
+
+function updateLocalUsersList(user) {
+  const existing = readLocalJson(LOCAL_STORAGE_USERS_KEY, []);
+  const updated = [user, ...existing.filter((item) => item.uid !== user.uid && item.email !== user.email)];
+  localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(updated));
+}
 
 /**
  * Registers a new user with Email and Password, sends a verification email,
  * and records their profile in Firestore.
  */
 export async function registerWithEmail(email, password, displayName) {
-  const name = displayName || email.split('@')[0];
+  const normalizedEmail = normalizeEmail(email);
+  const name = displayName || normalizedEmail.split('@')[0];
 
   if (!isFirebaseConfigured || !auth) {
+    if (password.length < 6) {
+      throw createAuthError('auth/weak-password', 'La contraseña debe tener al menos 6 caracteres.');
+    }
+
+    const accounts = readLocalJson(LOCAL_STORAGE_ACCOUNTS_KEY, {});
+    const legacyUsers = readLocalJson(LOCAL_STORAGE_USERS_KEY, []);
+    if (accounts[normalizedEmail]) {
+      throw createAuthError('auth/email-already-in-use', 'Este correo ya está registrado.');
+    }
+
+    const legacyUser = legacyUsers.find((item) => normalizeEmail(item.email) === normalizedEmail);
+    const credentials = await createPasswordCredentials(password);
     const localUser = {
-      uid: 'user_' + Date.now(),
-      email,
-      displayName: name,
+      uid: legacyUser?.uid || 'user_' + Date.now(),
+      email: normalizedEmail,
+      displayName: displayName || legacyUser?.displayName || name,
       isAnonymous: false,
       emailVerified: true,
       role: 'driver',
-      createdAt: new Date().toISOString(),
+      createdAt: legacyUser?.createdAt || new Date().toISOString(),
       lastLogin: new Date().toISOString(),
     };
-    localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(localUser));
-
-    // Save to local users list
-    const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_USERS_KEY) || '[]');
-    existing.unshift(localUser);
-    localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(existing));
+    accounts[normalizedEmail] = { ...localUser, ...credentials };
+    localStorage.setItem(LOCAL_STORAGE_ACCOUNTS_KEY, JSON.stringify(accounts));
+    saveCurrentLocalUser(localUser);
+    updateLocalUsersList(localUser);
 
     return { user: localUser, verificationSent: false, localOnly: true };
   }
 
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
   const user = cred.user;
 
   if (displayName) {
@@ -90,28 +180,42 @@ export async function registerWithEmail(email, password, displayName) {
  * Signs in an existing user with Email and Password
  */
 export async function loginWithEmail(email, password) {
+  const normalizedEmail = normalizeEmail(email);
+
   if (!isFirebaseConfigured || !auth) {
-    const saved = JSON.parse(localStorage.getItem(LOCAL_STORAGE_USER_KEY) || '{}');
-    if (saved.email === email) {
-      saved.lastLogin = new Date().toISOString();
-      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(saved));
-      return { user: saved };
+    const accounts = readLocalJson(LOCAL_STORAGE_ACCOUNTS_KEY, {});
+    const account = accounts[normalizedEmail];
+
+    if (!account) {
+      const legacyUsers = readLocalJson(LOCAL_STORAGE_USERS_KEY, []);
+      const legacyCurrentUser = readLocalJson(LOCAL_STORAGE_USER_KEY, null);
+      const hasLegacyAccount = legacyUsers.some((item) => normalizeEmail(item.email) === normalizedEmail)
+        || normalizeEmail(legacyCurrentUser?.email) === normalizedEmail;
+      if (hasLegacyAccount) {
+        throw createAuthError(
+          'auth/local-account-upgrade-required',
+          'Esta cuenta local fue creada con una versión anterior. Regístrala nuevamente.'
+        );
+      }
+      throw createAuthError('auth/invalid-credential', 'Correo o contraseña incorrectos.');
     }
-    const simulatedUser = {
-      uid: 'user_' + Date.now(),
-      email,
-      displayName: email.split('@')[0],
-      isAnonymous: false,
-      emailVerified: true,
-      role: 'driver',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-    };
-    localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(simulatedUser));
-    return { user: simulatedUser };
+
+    const passwordHash = await derivePasswordHash(password, account.passwordSalt);
+    if (passwordHash !== account.passwordHash) {
+      throw createAuthError('auth/invalid-credential', 'Correo o contraseña incorrectos.');
+    }
+
+    const updatedAccount = { ...account, lastLogin: new Date().toISOString() };
+    accounts[normalizedEmail] = updatedAccount;
+    localStorage.setItem(LOCAL_STORAGE_ACCOUNTS_KEY, JSON.stringify(accounts));
+
+    const localUser = toPublicUser(updatedAccount);
+    saveCurrentLocalUser(localUser);
+    updateLocalUsersList(localUser);
+    return { user: localUser };
   }
 
-  const cred = await signInWithEmailAndPassword(auth, email, password);
+  const cred = await signInWithEmailAndPassword(auth, normalizedEmail, password);
 
   // Update last login in Firestore
   if (db && cred.user) {
@@ -145,7 +249,7 @@ export async function loginAsGuest() {
       createdAt: new Date().toISOString(),
       lastLogin: new Date().toISOString(),
     };
-    localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(guestUser));
+    saveCurrentLocalUser(guestUser);
     return { user: guestUser };
   }
 
@@ -204,7 +308,8 @@ export async function logoutUser() {
  */
 export async function getUserProfile(uid) {
   if (!isFirebaseConfigured || !db || !uid) {
-    return JSON.parse(localStorage.getItem(LOCAL_STORAGE_USER_KEY) || 'null');
+    const saved = readLocalJson(LOCAL_STORAGE_USER_KEY, null);
+    return saved?.uid === uid ? saved : null;
   }
 
   try {
@@ -231,7 +336,7 @@ export async function getAllRegisteredUsers() {
       try {
         const q = query(usersRef, orderBy('createdAt', 'desc'), limit(50));
         snapshot = await getDocs(q);
-      } catch (errOrder) {
+      } catch {
         // Fallback in case orderBy requires index or documents lack createdAt
         snapshot = await getDocs(query(usersRef, limit(50)));
       }
@@ -254,5 +359,5 @@ export async function getAllRegisteredUsers() {
   }
 
   // Fallback to local storage list
-  return JSON.parse(localStorage.getItem(LOCAL_STORAGE_USERS_KEY) || '[]');
+  return readLocalJson(LOCAL_STORAGE_USERS_KEY, []).map(toPublicUser);
 }

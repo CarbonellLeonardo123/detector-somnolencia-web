@@ -14,7 +14,6 @@ import {
   Divider,
   Paper,
   IconButton,
-  Tooltip,
 } from '@mui/material';
 import {
   CloudDone as CloudDoneIcon,
@@ -41,8 +40,22 @@ export default function FirebaseConfigModal({ open, onClose, onConfigSaved }) {
   const securityRulesSnippet = `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    match /users/{userId} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow write: if signedIn() && request.auth.uid == userId;
+
+      match /{document=**} {
+        allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
+        allow write: if signedIn() && request.auth.uid == userId;
+      }
     }
   }
 }`;
@@ -54,21 +67,26 @@ service cloud.firestore {
   const handleJsonPaste = (text) => {
     setRawJson(text);
     try {
-      // Extract json even if wrapped in `const firebaseConfig = { ... }`
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) {
-        const parsed = Function('"use strict";return (' + match[0] + ')')();
-        setConfig((prev) => ({
-          ...prev,
-          apiKey: parsed.apiKey || '',
-          authDomain: parsed.authDomain || '',
-          projectId: parsed.projectId || '',
-          storageBucket: parsed.storageBucket || '',
-          messagingSenderId: parsed.messagingSenderId || '',
-          appId: parsed.appId || '',
-          measurementId: parsed.measurementId || '',
-        }));
+      // Firebase supplies a JavaScript object rather than strict JSON. Extract
+      // only the known string fields instead of evaluating pasted code.
+      const fields = [
+        'apiKey',
+        'authDomain',
+        'projectId',
+        'storageBucket',
+        'messagingSenderId',
+        'appId',
+        'measurementId',
+      ];
+      const parsed = {};
+      for (const field of fields) {
+        const match = text.match(new RegExp(`${field}\\s*:\\s*['"]([^'"]*)['"]`));
+        if (match) parsed[field] = match[1];
       }
+      if (!parsed.apiKey && !parsed.projectId) {
+        throw new Error('No se encontraron campos reconocidos de Firebase.');
+      }
+      setConfig((prev) => ({ ...prev, ...parsed }));
     } catch (e) {
       console.warn('Could not parse JSON config:', e);
     }
@@ -172,6 +190,9 @@ service cloud.firestore {
           <Typography variant="body2" sx={{ color: '#64748b', mb: 1, fontSize: '0.85rem' }}>
             Pega el bloque <code>const firebaseConfig = &#123; ... &#125;</code> de Firebase Console y se llenarán los campos automáticamente:
           </Typography>
+          <Alert severity="warning" sx={{ mb: 1.5 }}>
+            Solo usa la configuración pública de una Firebase Web App. Nunca pegues aquí JSON de cuenta de servicio, claves privadas, contraseñas ni secretos de Firebase Admin.
+          </Alert>
           <TextField
             fullWidth
             multiline

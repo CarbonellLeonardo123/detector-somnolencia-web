@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Typography, Button, Paper } from '@mui/material';
 import { Warning as WarningIcon, VolumeUp as VolumeUpIcon } from '@mui/icons-material';
-import { useDetection } from '../../context/DetectionContext';
+import { useDetection } from '../../context/detectionContextValue';
 
 export default function AlertOverlay() {
-  const { isVisualAlertActive, stopAlarm, uiState } = useDetection();
+  const { isVisualAlertActive, acknowledgeAlarm, uiState } = useDetection();
 
   if (!isVisualAlertActive) return null;
 
@@ -96,7 +96,7 @@ export default function AlertOverlay() {
           size="large"
           fullWidth
           startIcon={<VolumeUpIcon />}
-          onClick={stopAlarm}
+          onClick={acknowledgeAlarm}
           sx={{
             py: 1.8,
             fontSize: '1.1rem',
@@ -105,7 +105,7 @@ export default function AlertOverlay() {
             boxShadow: '0 10px 25px -5px rgba(220, 38, 38, 0.5)',
           }}
         >
-          He Despertado &mdash; Silenciar Alarma
+          Estoy alerta &mdash; Silenciar este episodio
         </Button>
       </Paper>
     </Box>

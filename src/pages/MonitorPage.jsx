@@ -8,7 +8,7 @@ import MetricsPanel from '../components/dashboard/MetricsPanel';
 import EARTimelineChart from '../components/charts/EARTimelineChart';
 import AttentionChart from '../components/charts/AttentionChart';
 import AlertOverlay from '../components/alerts/AlertOverlay';
-import { useDetection } from '../context/DetectionContext';
+import { useDetection } from '../context/detectionContextValue';
 
 export default function MonitorPage() {
   const { uiState, chartData, sessionDuration } = useDetection();

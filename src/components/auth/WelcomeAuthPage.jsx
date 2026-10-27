@@ -30,7 +30,7 @@ import {
   Functions as FunctionsIcon,
   Shield as ShieldIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authContextValue';
 import MathModelModal from '../math/MathModelModal';
 import { getAuthErrorMessage } from '../../utils/authErrors';
 

@@ -54,16 +54,16 @@ export default function MathModelModal({ open, onClose }) {
 
       <DialogContent dividers sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={3}>
-          {/* 1. Red Neuronal */}
+          {/* 1. Pretrained computer-vision model */}
           <Paper elevation={0} sx={{ p: 2.5, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 2 }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
               <PsychologyIcon sx={{ color: '#1976d2' }} />
               <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0f172a' }}>
-                1. Red Neuronal: MediaPipe Face Mesh (Visión Artificial en Cliente)
+                1. Modelo preentrenado MediaPipe (Visión Artificial en Cliente)
               </Typography>
             </Stack>
             <Typography variant="body2" sx={{ color: '#475569', mb: 1.5, lineHeight: 1.6 }}>
-              El sistema ejecuta localmente en el navegador un modelo de Deep Learning convolucional acelerado por WebAssembly (WASM) y GPU (WebGL). Detecta y rastrea <strong>468 puntos tridimensionales (landmarks 3D)</strong> del rostro del conductor a 30 FPS sin enviar video a ningún servidor.
+              El sistema ejecuta localmente en el navegador un modelo preentrenado de visión artificial acelerado por WebAssembly (WASM) y GPU (WebGL). Detecta y rastrea <strong>468 puntos tridimensionales (landmarks 3D)</strong> sin enviar video a ningún servidor. Este modelo de Google no se presenta como la red personalizada de SomnoGuard.
             </Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               <Chip size="small" label="468 Landmarks Faciales" color="primary" variant="outlined" />
@@ -127,12 +127,12 @@ export default function MathModelModal({ open, onClose }) {
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
               <TimelineIcon sx={{ color: '#ea580c' }} />
               <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#9a3412' }}>
-                3. Modelo de Probabilidad de Fatiga y Suavizado Estadístico
+                3. Índice heurístico de fatiga y suavizado estadístico
               </Typography>
             </Stack>
 
             <Typography variant="body2" sx={{ color: '#475569', mb: 1.5, lineHeight: 1.6 }}>
-              La probabilidad de fatiga del conductor no depende de una sola variable. El sistema emplea un algoritmo de <strong>fusión probabilística multi-señal ponderada</strong>:
+              El índice operativo de fatiga combina varias señales. Es una regla heurística útil para alertas en vivo, pero no una probabilidad clínica calibrada:
             </Typography>
 
             <Box
@@ -146,7 +146,7 @@ export default function MathModelModal({ open, onClose }) {
               }}
             >
               <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 800, color: '#c2410c' }}>
-                P(Fatiga) = 0.45 · S_EAR + 0.25 · S_Parpadeo + 0.30 · S_MicroSueño
+                Índice = 0.45 · S_EAR + 0.25 · S_Parpadeo + 0.30 · S_MicroSueño
               </Typography>
             </Box>
 
@@ -159,6 +159,45 @@ export default function MathModelModal({ open, onClose }) {
 
             <Typography variant="body2" sx={{ color: '#475569', fontSize: '0.85rem' }}>
               • <strong>Tasa de Parpadeo:</strong> Ventana deslizante de 60 segundos (Frecuencia normal: 12 - 20 /min). Frecuencias inferiores a 10 o superiores a 26 disparan penalizaciones de somnolencia.
+            </Typography>
+          </Paper>
+
+          <Paper elevation={0} sx={{ p: 2.5, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 2 }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+              <TimelineIcon sx={{ color: '#2563eb' }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#1e3a8a' }}>
+                4. Regresión lineal simple y múltiple
+              </Typography>
+            </Stack>
+            <Typography variant="body2" sx={{ color: '#475569', lineHeight: 1.7 }}>
+              La regresión simple estima la tendencia <strong>fatiga = β₀ + β₁·tiempo</strong>. La regresión múltiple usa tiempo, EAR, PERCLOS, parpadeo, micro-sueños y presencia facial para estimar la fatiga de la siguiente ventana.
+            </Typography>
+            <Typography variant="body2" sx={{ fontFamily: 'monospace', color: '#1d4ed8', fontWeight: 700, mt: 1.5 }}>
+              ŷ = Xβ &emsp; β = (XᵀX + λI)⁻¹Xᵀy
+            </Typography>
+          </Paper>
+
+          <Paper elevation={0} sx={{ p: 2.5, backgroundColor: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 2 }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+              <FunctionsIcon sx={{ color: '#7e22ce' }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#581c87' }}>
+                5. Segmentación no supervisada K-Means
+              </Typography>
+            </Stack>
+            <Typography variant="body2" sx={{ color: '#475569', lineHeight: 1.7 }}>
+              Las ventanas se estandarizan y agrupan sin etiquetas previas. Los perfiles se interpretan después de calcular sus centroides; el notebook documenta método del codo y Silhouette Score.
+            </Typography>
+          </Paper>
+
+          <Paper elevation={0} sx={{ p: 2.5, backgroundColor: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: 2 }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+              <PsychologyIcon sx={{ color: '#be185d' }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#831843' }}>
+                6. Red neuronal personalizada SomnoGuard
+              </Typography>
+            </Stack>
+            <Typography variant="body2" sx={{ color: '#475569', lineHeight: 1.7 }}>
+              La red académica se entrena con TensorFlow/Keras sobre características agregadas: <strong>7 entradas → Dense 32 ReLU → Dropout → Dense 16 ReLU → 3 clases</strong>. El artefacto incluido usa datos sintéticos y está marcado como no validado; debe reentrenarse con datos autorizados de la empresa.
             </Typography>
           </Paper>
         </Stack>

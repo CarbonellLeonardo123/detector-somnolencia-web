@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "modelName": "SomnoGuard MLP académico base",
+  "architecture": "Input(7) → Dense(8, ReLU) → Dense(3, Softmax); el entrenamiento completo exporta 32→16→3",
+  "trainingSource": "synthetic-demo",
+  "validated": false,
+  "classes": ["normal", "atencion", "peligro"],
+  "features": [
+    "avgEAR",
+    "minEAR",
+    "perclos",
+    "blinkRate",
+    "microsleeps",
+    "elapsedMinutes",
+    "facePresenceRatio"
+  ],
+  "normalization": {
+    "mean": [0.28, 0.2, 0.12, 16.0, 0.2, 10.0, 0.95],
+    "std": [0.05, 0.05, 0.12, 7.0, 0.7, 10.0, 0.1]
+  },
+  "layers": [
+    {
+      "activation": "relu",
+      "weights": [
+        [0.9, 0.7, -0.8, -0.1, -0.7, -0.1, 0.4],
+        [-0.7, -0.6, 1.0, 0.2, 1.1, 0.2, -0.4],
+        [-0.3, -0.2, 0.7, 0.8, 0.5, 0.1, -0.2],
+        [0.4, 0.2, -0.4, -0.5, -0.3, -0.1, 0.2],
+        [-0.5, -0.4, 0.8, 0.1, 1.2, 0.3, -0.5],
+        [0.2, 0.1, 0.1, 0.7, 0.2, 0.2, 0.1],
+        [0.6, 0.5, -0.6, 0.0, -0.5, -0.2, 0.3],
+        [-0.2, -0.3, 0.5, 0.3, 0.7, 0.4, -0.2]
+      ],
+      "bias": [0.1, 0.0, 0.0, 0.05, 0.0, 0.0, 0.1, 0.0]
+    },
+    {
+      "activation": "softmax",
+      "weights": [
+        [1.2, -0.8, -0.3, 0.8, -0.7, -0.1, 1.0, -0.5],
+        [-0.2, 0.7, 0.8, -0.2, 0.5, 0.4, -0.1, 0.6],
+        [-0.9, 1.1, 0.4, -0.6, 1.2, 0.1, -0.8, 0.9]
+      ],
+      "bias": [0.35, 0.0, -0.25]
+    }
+  ],
+  "warning": "Modelo sintético de demostración, no validado clínicamente ni apto para decisiones de seguridad sin supervisión."
+}

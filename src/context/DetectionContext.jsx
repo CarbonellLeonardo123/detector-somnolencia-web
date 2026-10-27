@@ -1,12 +1,11 @@
-import React, { createContext, useContext, useRef, useCallback } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { useWebcam } from '../hooks/useWebcam';
 import { useFaceDetector } from '../hooks/useFaceDetector';
 import { useAlertSystem } from '../hooks/useAlertSystem';
 import { useSessionRecorder } from '../hooks/useSessionRecorder';
 import { useDetectionLoop } from '../hooks/useDetectionLoop';
-import { useAuth } from './AuthContext';
-
-const DetectionContext = createContext(null);
+import { useAuth } from './authContextValue';
+import { DetectionContext } from './detectionContextValue';
 
 export function DetectionProvider({ children }) {
   const { user } = useAuth();
@@ -26,7 +25,14 @@ export function DetectionProvider({ children }) {
   const { detectorRef, isModelReady, isLoadingModel, modelError } = useFaceDetector();
 
   // 3. Audio & Visual Alerts
-  const { isAlarmPlaying, isVisualAlertActive, startAlarm, stopAlarm, initAudio } = useAlertSystem();
+  const {
+    isAlarmPlaying,
+    isVisualAlertActive,
+    startAlarm,
+    acknowledgeAlarm,
+    clearAlarm,
+    initAudio,
+  } = useAlertSystem();
 
   // 4. Session Recorder (Persistence)
   const {
@@ -51,8 +57,8 @@ export function DetectionProvider({ children }) {
   }, [startAlarm]);
 
   const handleAlertCleared = useCallback(() => {
-    stopAlarm();
-  }, [stopAlarm]);
+    clearAlarm();
+  }, [clearAlarm]);
 
   // 5. Main Processing Loop
   const { uiState, chartData } = useDetectionLoop({
@@ -69,16 +75,18 @@ export function DetectionProvider({ children }) {
   // Start combined monitoring (camera + session + audio unlock)
   const startMonitoring = useCallback(async () => {
     initAudio();
-    await startCamera();
+    const cameraStarted = await startCamera();
+    if (!cameraStarted) return false;
     await startSession();
+    return true;
   }, [initAudio, startCamera, startSession]);
 
   // Stop combined monitoring
   const stopMonitoring = useCallback(async () => {
-    stopAlarm();
+    clearAlarm();
     stopCamera();
     await stopSession();
-  }, [stopAlarm, stopCamera, stopSession]);
+  }, [clearAlarm, stopCamera, stopSession]);
 
   const value = {
     // Camera
@@ -102,7 +110,7 @@ export function DetectionProvider({ children }) {
     // Alerts
     isAlarmPlaying,
     isVisualAlertActive,
-    stopAlarm,
+    acknowledgeAlarm,
 
     // Session
     sessionId,
@@ -117,12 +125,4 @@ export function DetectionProvider({ children }) {
       {children}
     </DetectionContext.Provider>
   );
-}
-
-export function useDetection() {
-  const context = useContext(DetectionContext);
-  if (!context) {
-    throw new Error('useDetection must be used within a DetectionProvider');
-  }
-  return context;
 }

@@ -48,7 +48,7 @@ export class DrowsinessEngine {
         blinkRate: calculateBlinkRate(this.blinkTimestamps, 60000, currentTime),
         totalBlinks: this.totalBlinks,
         microsleepCount: this.totalMicrosleeps,
-        isAlertActive: this.state === DETECTION_STATES.PELIGRO,
+        isAlertActive: this.state === DETECTION_STATES.DANGER,
         avgEAR: eyeMetrics.avgEAR,
         earThreshold: this.earThreshold,
       };
@@ -184,7 +184,7 @@ export class DrowsinessEngine {
 
     // 4. State Machine Transition
     if (this.isMicrosleepActive || this.fatigueProbability >= 80) {
-      this.state = DETECTION_STATES.PELIGRO;
+      this.state = DETECTION_STATES.DANGER;
     } else if (this.fatigueProbability >= 60) {
       this.state = DETECTION_STATES.ALERT;
     } else if (this.fatigueProbability >= 35) {
@@ -207,7 +207,7 @@ export class DrowsinessEngine {
       isEyesClosed,
       isMicrosleepActive: this.isMicrosleepActive,
       microsleepTriggeredThisFrame,
-      isAlertActive: this.state === DETECTION_STATES.PELIGRO,
+      isAlertActive: this.state === DETECTION_STATES.DANGER,
     };
   }
 }

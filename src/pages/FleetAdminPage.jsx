@@ -17,18 +17,12 @@ import {
   Stack,
   Button,
   LinearProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
   Alert,
-  IconButton,
   Tabs,
   Tab,
 } from '@mui/material';
 import {
-  DirectionsCar as DirectionsCarIcon,
   Timer as TimerIcon,
   Bedtime as BedtimeIcon,
   Shield as ShieldIcon,
@@ -37,28 +31,33 @@ import {
   Settings as SettingsIcon,
   People as PeopleIcon,
   History as HistoryIcon,
+  Insights as InsightsIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/authContextValue';
 import { getAllFleetSessions } from '../services/firebase/sessionService';
 import { getAllRegisteredUsers } from '../services/firebase/authService';
 import { isFirebaseConfigured } from '../services/firebase/config';
 import { formatDuration, formatDateTime, getRiskLevelInfo } from '../utils/formatters';
 import FirebaseConfigModal from '../components/history/FirebaseConfigModal';
+import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard';
 
-const ADMIN_MASTER_PIN = 'admin123'; // Clave de acceso para la exposición y supervisores
+const DEMO_ADMIN_PIN = import.meta.env.VITE_ADMIN_DEMO_PIN || 'admin123';
 
 export default function FleetAdminPage() {
   const { user } = useAuth();
 
   // Admin access state
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(
+  const [isDemoAdminAuthenticated, setIsDemoAdminAuthenticated] = useState(
     () => sessionStorage.getItem('somnoguard_admin_authenticated') === 'true'
+  );
+  const [cloudAdminStatus, setCloudAdminStatus] = useState(
+    isFirebaseConfigured ? 'checking' : 'not-applicable'
   );
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [configModalOpen, setConfigModalOpen] = useState(false);
 
-  // Data tabs: 0 = Usuarios Registrados, 1 = Sesiones de Conducción
+  // Data tabs: 0 = Usuarios, 1 = Sesiones, 2 = Analítica ML
   const [activeTab, setActiveTab] = useState(0);
 
   // Real data from Firestore
@@ -66,16 +65,47 @@ export default function FleetAdminPage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const isAdminAuthenticated = isFirebaseConfigured
+    ? cloudAdminStatus === 'authorized'
+    : isDemoAdminAuthenticated;
+
   const handleUnlockAdmin = (e) => {
     e.preventDefault();
-    if (pinInput.trim() === ADMIN_MASTER_PIN || pinInput.trim() === 'senati2026') {
-      setIsAdminAuthenticated(true);
+    if (pinInput.trim() === DEMO_ADMIN_PIN) {
+      setIsDemoAdminAuthenticated(true);
       sessionStorage.setItem('somnoguard_admin_authenticated', 'true');
       setPinError('');
     } else {
-      setPinError('Contraseña de administrador incorrecta. (Prueba con "admin123")');
+      setPinError('PIN de demostración incorrecto.');
     }
   };
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) return undefined;
+
+    let active = true;
+    const verifyCloudAdmin = async () => {
+      if (!user || user.isAnonymous || typeof user.getIdTokenResult !== 'function') {
+        if (active) setCloudAdminStatus('denied');
+        return;
+      }
+
+      try {
+        const token = await user.getIdTokenResult(true);
+        if (active) {
+          setCloudAdminStatus(token.claims?.admin === true ? 'authorized' : 'denied');
+        }
+      } catch (error) {
+        console.warn('Could not verify Firebase admin claim:', error);
+        if (active) setCloudAdminStatus('denied');
+      }
+    };
+
+    void verifyCloudAdmin();
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const loadData = async () => {
     setLoading(true);
@@ -95,6 +125,8 @@ export default function FleetAdminPage() {
 
   useEffect(() => {
     if (isAdminAuthenticated) {
+      // Data loading is an external side effect tied to the authenticated view.
+      // oxlint-disable-next-line react/set-state-in-effect
       loadData();
     }
   }, [isAdminAuthenticated, user?.uid]);
@@ -134,43 +166,53 @@ export default function FleetAdminPage() {
             Panel de Supervisión Reservado
           </Typography>
           <Typography variant="body2" sx={{ color: '#64748b', mb: 3 }}>
-            Esta sección está reservada exclusivamente para el Administrador de Flota y Evaluadores de SENATI.
+            {isFirebaseConfigured
+              ? 'En modo Firebase, esta sección exige el atributo seguro admin=true en la cuenta autenticada.'
+              : 'Modo académico local: este PIN solo separa las vistas durante la demostración y no reemplaza seguridad de servidor.'}
           </Typography>
 
-          <form onSubmit={handleUnlockAdmin}>
-            {pinError && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {pinError}
-              </Alert>
-            )}
+          {isFirebaseConfigured ? (
+            <Alert severity={cloudAdminStatus === 'checking' ? 'info' : 'warning'}>
+              {cloudAdminStatus === 'checking'
+                ? 'Verificando permisos administrativos...'
+                : 'La cuenta actual no tiene el permiso administrativo de Firebase. El atributo debe asignarse fuera del navegador mediante Firebase Admin SDK.'}
+            </Alert>
+          ) : (
+            <form onSubmit={handleUnlockAdmin}>
+              {pinError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {pinError}
+                </Alert>
+              )}
 
-            <TextField
-              type="password"
-              label="Contraseña de Administrador"
-              placeholder="Ingresa admin123"
-              value={pinInput}
-              onChange={(e) => setPinInput(e.target.value)}
-              fullWidth
-              required
-              autoFocus
-              sx={{ mb: 2.5 }}
-            />
+              <TextField
+                type="password"
+                label="PIN académico de demostración"
+                placeholder="Ingresa el PIN de demostración"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                fullWidth
+                required
+                autoFocus
+                sx={{ mb: 2.5 }}
+              />
 
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              size="large"
-              sx={{ py: 1.3, fontWeight: 700 }}
-            >
-              Desbloquear Panel Admin
-            </Button>
-          </form>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                fullWidth
+                size="large"
+                sx={{ py: 1.3, fontWeight: 700 }}
+              >
+                Abrir demostración del panel
+              </Button>
 
-          <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mt: 2 }}>
-            💡 Contraseña por defecto para evaluación: <strong>admin123</strong>
-          </Typography>
+              <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mt: 2 }}>
+                PIN académico por defecto: <strong>{DEMO_ADMIN_PIN}</strong>. Puedes cambiarlo con VITE_ADMIN_DEMO_PIN.
+              </Typography>
+            </form>
+          )}
         </Paper>
       </Box>
     );
@@ -181,7 +223,7 @@ export default function FleetAdminPage() {
   const totalSeconds = sessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0);
   const totalMicrosleeps = sessions.reduce((acc, s) => acc + (s.metrics?.microsleepCount || 0), 0);
   const totalAlerts = sessions.reduce((acc, s) => acc + (s.metrics?.totalAlerts || 0), 0);
-  const safetyScore = Math.max(70, Math.min(100, Math.round(100 - totalMicrosleeps * 5 - totalAlerts * 2)));
+  const heuristicSafetyScore = Math.max(0, Math.min(100, Math.round(100 - totalMicrosleeps * 5 - totalAlerts * 2)));
 
   return (
     <Box>
@@ -215,6 +257,8 @@ export default function FleetAdminPage() {
           </Button>
         </Stack>
       </Box>
+
+      {loading && <LinearProgress sx={{ mb: 2 }} />}
 
       {/* KPI Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -280,19 +324,22 @@ export default function FleetAdminPage() {
             <CardContent sx={{ p: 2.5 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#64748b' }}>
-                  Índice de Seguridad Vial
+                  Índice Heurístico de Seguridad
                 </Typography>
                 <ShieldIcon sx={{ color: '#16a34a' }} />
               </Stack>
               <Typography variant="h4" sx={{ fontWeight: 800, color: '#16a34a', my: 1 }}>
-                {safetyScore}%
+                {heuristicSafetyScore}%
               </Typography>
               <LinearProgress
                 variant="determinate"
-                value={safetyScore}
+                value={heuristicSafetyScore}
                 color="success"
                 sx={{ height: 6, borderRadius: 3, mt: 1 }}
               />
+              <Typography variant="caption" sx={{ color: '#64748b', display: 'block', mt: 1 }}>
+                Fórmula operativa; no es una predicción ML.
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -311,6 +358,12 @@ export default function FleetAdminPage() {
             icon={<HistoryIcon fontSize="small" />}
             iconPosition="start"
             label={`Historial de Sesiones en Firestore (${sessions.length})`}
+            sx={{ fontWeight: 700 }}
+          />
+          <Tab
+            icon={<InsightsIcon fontSize="small" />}
+            iconPosition="start"
+            label="Analítica ML"
             sx={{ fontWeight: 700 }}
           />
         </Tabs>
@@ -450,6 +503,9 @@ export default function FleetAdminPage() {
           )}
         </Paper>
       )}
+
+      {/* TAB 2: Academic and business machine-learning indicators */}
+      {activeTab === 2 && <AnalyticsDashboard sessions={sessions} />}
 
       {/* Firebase Settings Modal */}
       <FirebaseConfigModal
