@@ -1,8 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/**/*.py": {
-      "excludeFiles": "{src/**,ml/**,docs/**,node_modules/**,dist/**,**/*.test.py,**/test_*.py}"
+    "api/analytics.py": {
+      "memory": 1024,
+      "maxDuration": 15
     }
   },
   "rewrites": [

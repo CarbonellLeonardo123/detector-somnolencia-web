@@ -765,3 +765,9 @@ def analyze_payload(payload: Any) -> dict[str, Any]:
         "warnings": warnings,
     }
 
+
+class handler:
+    """Fallback handler so Vercel does not fail if it scans this module as a route."""
+    def __init__(self, *args, **kwargs):
+        pass
+
