@@ -1,3 +1,2 @@
-numpy>=1.26,<3
-pandas>=2.2,<4
-scikit-learn>=1.5,<2
+# Runtime liviano para funciones serverless en Vercel
+# Para entrenamiento y notebooks ML completos, consultar ml/requirements.txt
