@@ -23,7 +23,7 @@ import {
   LocalShipping as LocalShippingIcon,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authContextValue';
 import AuthModal from '../auth/AuthModal';
 import MathModelModal from '../math/MathModelModal';
 

@@ -13,7 +13,7 @@ export function useWebcam() {
     setError(null);
 
     if (streamRef.current) {
-      return; // Already streaming
+      return true; // Already streaming
     }
 
     try {
@@ -41,8 +41,13 @@ export function useWebcam() {
 
       setIsStreaming(true);
       setHasPermission(true);
+      return true;
     } catch (err) {
       console.error('Error accessing webcam:', err);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
       setError(
         err.name === 'NotAllowedError'
           ? 'Permiso de cámara denegado por el usuario.'
@@ -50,6 +55,7 @@ export function useWebcam() {
       );
       setHasPermission(false);
       setIsStreaming(false);
+      return false;
     }
   }, []);
 

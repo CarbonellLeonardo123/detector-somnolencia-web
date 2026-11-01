@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../services/firebase/config';
 import {
@@ -11,34 +11,52 @@ import {
   getUserProfile,
   ensureUserInFirestore,
 } from '../services/firebase/authService';
+import { AuthContext } from './authContextValue';
 
-const AuthContext = createContext(null);
+function createGuestProfile() {
+  return {
+    uid: 'guest_' + Math.random().toString(36).substring(2, 8),
+    displayName: 'Conductor Invitado',
+    isAnonymous: true,
+    email: null,
+    role: 'guest',
+  };
+}
+
+function getInitialAuthState() {
+  if (isFirebaseConfigured && auth) {
+    return { user: null, profile: null, loading: true };
+  }
+
+  try {
+    const saved = JSON.parse(localStorage.getItem('somnoguard_user_profile') || 'null');
+    const initialUser = saved || createGuestProfile();
+    return { user: initialUser, profile: initialUser, loading: false };
+  } catch {
+    const guest = createGuestProfile();
+    return { user: guest, profile: guest, loading: false };
+  }
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [initialAuthState] = useState(getInitialAuthState);
+  const [user, setUser] = useState(initialAuthState.user);
+  const [profile, setProfile] = useState(initialAuthState.profile);
+  const [loading, setLoading] = useState(initialAuthState.loading);
+
+  const setActiveUser = (nextUser) => {
+    setUser(nextUser);
+    setProfile(nextUser ? {
+      uid: nextUser.uid,
+      displayName: nextUser.displayName || (nextUser.isAnonymous ? 'Conductor Invitado' : 'Conductor'),
+      email: nextUser.email || null,
+      isAnonymous: Boolean(nextUser.isAnonymous),
+      role: nextUser.role || (nextUser.isAnonymous ? 'guest' : 'driver'),
+    } : null);
+  };
 
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) {
-      // Offline fallback: check localStorage
-      const saved = JSON.parse(localStorage.getItem('somnoguard_user_profile') || 'null');
-      if (saved) {
-        setUser(saved);
-        setProfile(saved);
-      } else {
-        // Auto initialize as guest
-        const guest = {
-          uid: 'guest_' + Math.random().toString(36).substring(2, 8),
-          displayName: 'Conductor Invitado',
-          isAnonymous: true,
-          email: null,
-          role: 'guest',
-        };
-        setUser(guest);
-        setProfile(guest);
-      }
-      setLoading(false);
       return;
     }
 
@@ -81,6 +99,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const res = await registerWithEmail(email, password, displayName);
+      setActiveUser(res.user);
       return res;
     } finally {
       setLoading(false);
@@ -91,6 +110,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const res = await loginWithEmail(email, password);
+      setActiveUser(res.user);
       return res;
     } finally {
       setLoading(false);
@@ -101,14 +121,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const res = await loginAsGuest();
-      const guest = res.user;
-      setUser(guest);
-      setProfile({
-        uid: guest.uid,
-        displayName: guest.displayName || 'Conductor Invitado',
-        isAnonymous: true,
-        role: 'guest',
-      });
+      setActiveUser(res.user);
       return res;
     } finally {
       setLoading(false);
@@ -119,8 +132,13 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       await logoutUser();
-      // Re-sign in as guest automatically
-      await loginAsGuest();
+      if (!isFirebaseConfigured || !auth) {
+        const res = await loginAsGuest();
+        setActiveUser(res.user);
+      } else {
+        // Firebase's auth-state listener will establish the anonymous session.
+        setActiveUser(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -151,10 +169,4 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+export { useAuth } from './authContextValue';

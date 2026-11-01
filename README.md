@@ -16,6 +16,26 @@
   - Sirena acústica sintetizada en el navegador (Web Audio API).
   - Overlay de pantalla completa con destello rojo y botón de reconocimiento.
 - **Historial de Sesiones:** Registro histórico de sesiones, tiempos, tasas de parpadeo y conteo de micro-sueños.
+- **Analítica ML Empresarial:** Estadística descriptiva, regresión simple y múltiple, K-Means y red neuronal académica, visibles desde el panel de flota.
+
+---
+
+## 📊 Extensión académica de Machine Learning
+
+Las sesiones nuevas generan ventanas estadísticas reales de 30 segundos con EAR, fatiga, atención, PERCLOS, presencia facial, parpadeos, alertas y micro-sueños. El panel **Flota → Analítica ML** permite:
+
+- Calcular media, mediana, varianza, desviación estándar y probabilidades empíricas.
+- Proyectar fatiga mediante regresión lineal simple.
+- Estimar la siguiente ventana mediante regresión lineal múltiple y mostrar matrices/vectores.
+- Segmentar ventanas con K-Means estandarizado.
+- Ejecutar una red neuronal personalizada exportada desde TensorFlow/Keras.
+- Exportar métricas anonimizadas a CSV para Google Colab.
+
+La API ligera de Vercel usa Python, NumPy, Pandas y scikit-learn. El entrenamiento pesado con TensorFlow/Keras, OpenCV, Matplotlib y Seaborn se ejecuta en Colab o localmente desde `ml/`. Si la API no está disponible durante `npm run dev`, la interfaz usa un fallback JavaScript y lo indica explícitamente.
+
+> El artefacto incluido usa datos sintéticos y está marcado como no validado. MediaPipe es un modelo preentrenado de visión; no es la red neuronal personalizada. El índice de fatiga en vivo es heurístico, no una probabilidad clínica.
+
+Documentación de sustentación: [`docs/ACADEMIC_REQUIREMENTS.md`](docs/ACADEMIC_REQUIREMENTS.md), [`docs/COLAB_GUIDE.md`](docs/COLAB_GUIDE.md) y [`docs/VIDEO_SCRIPT_5_MIN.md`](docs/VIDEO_SCRIPT_5_MIN.md).
 
 ---
 
@@ -54,7 +74,7 @@ El resultado se suaviza mediante una **Media Móvil Exponencial (EMA)** para evi
 
 ```
 Frontend:            React 19 + Vite 8
-Librería UI:         Material UI (MUI v6/v7) con diseño limpio y claro
+Librería UI:         Material UI (MUI 9) con diseño limpio y claro
 Gráficas:            Recharts (LineChart y AreaChart reactivos)
 Visión Artificial:   @mediapipe/tasks-vision (FaceLandmarker + Blendshapes vía WebAssembly + WebGL)
 Audio:               Web Audio API (generador de tonos sinusoidales/dientes de sierra)
@@ -70,7 +90,8 @@ Deploy:              Vercel / Render
 ```
 detector-somnolencia-web/
 ├── public/
-│   └── vite.svg
+│   ├── favicon.svg
+│   └── icons.svg
 ├── src/
 │   ├── components/
 │   │   ├── alerts/
@@ -95,7 +116,6 @@ detector-somnolencia-web/
 │   │   └── DetectionContext.jsx          # Estado global de monitoreo
 │   ├── hooks/
 │   │   ├── useAlertSystem.js             # Alarma acústica (Web Audio API)
-│   │   ├── useAnonymousAuth.js           # Auth anónima con fallback local
 │   │   ├── useDetectionLoop.js           # Loop rAF con async-lock
 │   │   ├── useFaceDetector.js            # Ciclo de vida de MediaPipe
 │   │   ├── useSessionRecorder.js         # Persistencia por bucket (30s)
@@ -134,35 +154,38 @@ detector-somnolencia-web/
 ## 🛠️ Instalación y Ejecución Local
 
 ### Prerrequisitos
-- **Node.js** (versión 18 o superior recomendada).
+- **Node.js 22.12 o superior** (Node 24 LTS recomendado para desarrollo y pruebas).
 - Navegador web moderno con soporte para **WebGL** y acceso a cámara web (Chrome, Edge, Firefox, Brave, Safari).
 
 ### 1. Clonar e Instalar Dependencias
 
-```bash
-# Navegar a la carpeta del proyecto
+```powershell
 cd detector-somnolencia-web
-
-# Instalar dependencias
 npm install
 ```
+
+En Windows también puedes abrir PowerShell directamente dentro de la carpeta del proyecto y ejecutar solo `npm install`.
 
 ### 2. Configurar Firebase (Opcional)
 
 El proyecto incluye un **modo offline/local automático**. Si no configuras Firebase, el sistema almacenará el historial y las alertas en el `LocalStorage` del navegador de forma transparente.
 
+Para revisar el proyecto localmente no necesitas conectar ninguna cuenta de GitHub ni configurar Firebase. El panel de flota usa el PIN académico `admin123` por defecto; puedes cambiarlo mediante `VITE_ADMIN_DEMO_PIN` en un archivo `.env.local`. Este PIN es únicamente una separación visual para exposiciones, no seguridad de producción.
+
 Para conectar con una base de datos real de **Firebase Firestore**:
 1. Crea un proyecto en [Firebase Console](https://console.firebase.google.com/).
 2. Habilita **Firestore Database** y **Anonymous Authentication** (en la sección *Authentication -> Sign-in method*).
 3. Copia el archivo `.env.example` a `.env.local`:
-   ```bash
-   cp .env.example .env.local
+   ```powershell
+   Copy-Item .env.example .env.local
    ```
 4. Completa los valores con las credenciales de tu proyecto en `.env.local`.
 
+Usa únicamente la configuración pública de una **Firebase Web App** (`apiKey`, `projectId`, etc.). Nunca pegues aquí un JSON de cuenta de servicio, claves privadas, contraseñas ni secretos de Firebase Admin.
+
 ### 3. Iniciar el Servidor de Desarrollo
 
-```bash
+```powershell
 npm run dev
 ```
 
@@ -170,10 +193,20 @@ Abre tu navegador en la URL indicada (habitualmente `http://localhost:5173/`).
 
 ### 4. Construir para Producción
 
-```bash
+```powershell
 npm run build
 npm run preview
 ```
+
+### 5. Verificar los cambios
+
+```powershell
+npm test
+npm run lint
+npm run build
+```
+
+En modo Firebase, el panel global de flota exige que la cuenta tenga el custom claim `admin: true`. Ese permiso debe asignarse desde un entorno confiable con Firebase Admin SDK, nunca desde este frontend.
 
 ---
 
@@ -250,7 +283,7 @@ git push origin main
 ## ☁️ Despliegue en la Nube (Vercel / Render)
 
 ### Despliegue en Vercel (Recomendado)
-El proyecto incluye el archivo [`vercel.json`](file:///c:/Users/USER/Downloads/detector-somnolencia-web/vercel.json) con reescritura de rutas para Single Page Application (SPA).
+El proyecto incluye `vercel.json` con reescritura de rutas para Single Page Application (SPA).
 
 1. Ingresa a [Vercel](https://vercel.com/) e inicia sesión con tu cuenta de GitHub.
 2. Haz clic en **"Add New Project"** y selecciona el repositorio de GitHub.

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import muiTheme from './theme/muiTheme';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/authContextValue';
 import { DetectionProvider } from './context/DetectionContext';
+import { useDetection } from './context/detectionContextValue';
 import MainLayout from './components/layout/MainLayout';
 import MonitorPage from './pages/MonitorPage';
 import HistoryPage from './pages/HistoryPage';
@@ -12,11 +14,20 @@ import WelcomeAuthPage from './components/auth/WelcomeAuthPage';
 
 function AppRoutes() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useAuth();
+  const { isStreaming, isRecording, stopMonitoring } = useDetection();
 
   const [hasEntered, setHasEntered] = useState(() => {
     return sessionStorage.getItem('somnoguard_has_entered') === 'true';
   });
+
+  useEffect(() => {
+    const shouldStopMonitoring = !hasEntered || location.pathname !== '/';
+    if (shouldStopMonitoring && (isStreaming || isRecording)) {
+      void stopMonitoring();
+    }
+  }, [hasEntered, isRecording, isStreaming, location.pathname, stopMonitoring]);
 
   const handleEnterApp = () => {
     sessionStorage.setItem('somnoguard_has_entered', 'true');
@@ -26,6 +37,7 @@ function AppRoutes() {
   const handleExitApp = async () => {
     sessionStorage.removeItem('somnoguard_has_entered');
     sessionStorage.removeItem('somnoguard_admin_authenticated');
+    await stopMonitoring();
     await logout();
     setHasEntered(false);
     navigate('/');

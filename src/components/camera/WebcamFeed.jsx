@@ -17,7 +17,7 @@ import {
   Face as FaceIcon,
   VideocamOff as VideocamOffIcon,
 } from '@mui/icons-material';
-import { useDetection } from '../../context/DetectionContext';
+import { useDetection } from '../../context/detectionContextValue';
 import { DETECTION_STATES } from '../../utils/constants';
 
 export default function WebcamFeed() {
@@ -30,7 +30,6 @@ export default function WebcamFeed() {
     isLoadingModel,
     modelError,
     uiState,
-    isRecording,
     startMonitoring,
     stopMonitoring,
   } = useDetection();

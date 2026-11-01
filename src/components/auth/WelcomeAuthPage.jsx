@@ -29,11 +29,11 @@ import {
   Visibility as VisibilityIcon,
   Functions as FunctionsIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authContextValue';
 import MathModelModal from '../math/MathModelModal';
 import { getAuthErrorMessage } from '../../utils/authErrors';
 
-export default function WelcomeAuthPage({ onEnterApp }) {
+export default function WelcomeAuthPage({ onEnterApp, onOpenAdmin }) {
   const { register, login, loginGuest, resetPassword } = useAuth();
 
   const [tab, setTab] = useState(0); // 0: Login, 1: Register

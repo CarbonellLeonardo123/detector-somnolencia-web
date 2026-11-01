@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Paper } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import SessionList from '../components/history/SessionList';
 
 export default function HistoryPage() {

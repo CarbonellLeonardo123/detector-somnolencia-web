@@ -27,7 +27,7 @@ import {
   MarkEmailRead as MarkEmailReadIcon,
   CloudOff as CloudOffIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authContextValue';
 import { getAuthErrorMessage } from '../../utils/authErrors';
 
 export default function AuthModal({ open, onClose }) {

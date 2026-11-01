@@ -16,6 +16,48 @@ import { db, isFirebaseConfigured } from './config';
 
 const LOCAL_STORAGE_SESSIONS_KEY = 'somnoguard_sessions_history';
 
+function readLocalSessions() {
+  try {
+    const sessions = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
+    return Array.isArray(sessions) ? sessions : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalSessions(sessions) {
+  localStorage.setItem(LOCAL_STORAGE_SESSIONS_KEY, JSON.stringify(sessions));
+}
+
+function getLocalUserSessions(userId, maxSessions = 30) {
+  if (!userId) return [];
+  return readLocalSessions()
+    .filter((session) => session.userId === userId)
+    .slice(0, maxSessions);
+}
+
+function applyNestedUpdates(session, updates) {
+  const result = { ...session };
+
+  for (const [path, value] of Object.entries(updates)) {
+    const keys = path.split('.');
+    if (keys.length === 1) {
+      result[path] = value;
+      continue;
+    }
+
+    let cursor = result;
+    for (let index = 0; index < keys.length - 1; index++) {
+      const key = keys[index];
+      cursor[key] = { ...(cursor[key] || {}) };
+      cursor = cursor[key];
+    }
+    cursor[keys[keys.length - 1]] = value;
+  }
+
+  return result;
+}
+
 /**
  * Creates or initializes a new session
  */
@@ -59,9 +101,13 @@ export async function createSession(userId, sessionData) {
 
   // Local fallback
   try {
-    const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
-    existing.unshift(preparedData);
-    localStorage.setItem(LOCAL_STORAGE_SESSIONS_KEY, JSON.stringify(existing.slice(0, 50)));
+    const existing = readLocalSessions();
+    const otherUsers = existing.filter((session) => session.userId !== preparedData.userId);
+    const userSessions = [
+      preparedData,
+      ...existing.filter((session) => session.userId === preparedData.userId),
+    ].slice(0, 50);
+    saveLocalSessions([...userSessions, ...otherUsers]);
   } catch (e) {
     console.error('Failed to save session locally:', e);
   }
@@ -88,11 +134,14 @@ export async function updateSession(userId, sessionId, updateData) {
 
   // Local fallback
   try {
-    const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
-    const index = existing.findIndex((s) => s.sessionId === sessionId);
+    const existing = readLocalSessions();
+    const index = existing.findIndex((session) => session.sessionId === sessionId && session.userId === userId);
     if (index !== -1) {
-      existing[index] = { ...existing[index], ...updateData, updatedAt: new Date().toISOString() };
-      localStorage.setItem(LOCAL_STORAGE_SESSIONS_KEY, JSON.stringify(existing));
+      existing[index] = applyNestedUpdates(existing[index], {
+        ...updateData,
+        updatedAt: new Date().toISOString(),
+      });
+      saveLocalSessions(existing);
     }
   } catch (e) {
     console.error('Failed to update session locally:', e);
@@ -116,9 +165,11 @@ export async function deleteSession(userId, sessionId) {
 
   // Remove from local storage
   try {
-    const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
-    const filtered = existing.filter((s) => s.sessionId !== sessionId);
-    localStorage.setItem(LOCAL_STORAGE_SESSIONS_KEY, JSON.stringify(filtered));
+    const existing = readLocalSessions();
+    const filtered = existing.filter(
+      (session) => session.sessionId !== sessionId || session.userId !== userId
+    );
+    saveLocalSessions(filtered);
   } catch (e) {
     console.error('Failed to delete session locally:', e);
   }
@@ -152,8 +203,7 @@ export function subscribeUserSessions(userId, onSessionsChanged, maxSessions = 3
         },
         (error) => {
           console.warn('Firestore onSnapshot error, reverting to local data:', error);
-          const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
-          onSessionsChanged(existing);
+          onSessionsChanged(getLocalUserSessions(userId, maxSessions));
         }
       );
 
@@ -164,8 +214,7 @@ export function subscribeUserSessions(userId, onSessionsChanged, maxSessions = 3
   }
 
   // Local fallback
-  const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
-  onSessionsChanged(existing);
+  onSessionsChanged(getLocalUserSessions(userId, maxSessions));
   return () => {};
 }
 
@@ -195,12 +244,7 @@ export async function getUserSessions(userId, maxSessions = 30) {
   }
 
   // Local fallback
-  try {
-    const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
-    return existing;
-  } catch {
-    return [];
-  }
+  return getLocalUserSessions(userId, maxSessions);
 }
 
 /**
@@ -213,7 +257,7 @@ export async function getAllFleetSessions(maxSessions = 100) {
       try {
         const q = query(collectionGroup(db, 'sessions'), orderBy('startedAt', 'desc'), limit(maxSessions));
         snapshot = await getDocs(q);
-      } catch (errOrder) {
+      } catch {
         // Fallback in case collectionGroup indexing is missing
         const qFallback = query(collectionGroup(db, 'sessions'), limit(maxSessions));
         snapshot = await getDocs(qFallback);
@@ -236,11 +280,6 @@ export async function getAllFleetSessions(maxSessions = 100) {
   }
 
   // Local fallback
-  try {
-    const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_SESSIONS_KEY) || '[]');
-    return existing;
-  } catch {
-    return [];
-  }
+  return readLocalSessions().slice(0, maxSessions);
 }
 
