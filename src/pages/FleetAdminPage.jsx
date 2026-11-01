@@ -40,8 +40,13 @@ import { isFirebaseConfigured } from '../services/firebase/config';
 import { formatDuration, formatDateTime, getRiskLevelInfo } from '../utils/formatters';
 import FirebaseConfigModal from '../components/history/FirebaseConfigModal';
 import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard';
+import AuthModal from '../components/auth/AuthModal';
 
 const DEMO_ADMIN_PIN = import.meta.env.VITE_ADMIN_DEMO_PIN || 'admin123';
+const ADMIN_EMAIL_WHITELIST = (import.meta.env.VITE_ADMIN_EMAIL || '')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 export default function FleetAdminPage() {
   const { user } = useAuth();
@@ -56,6 +61,7 @@ export default function FleetAdminPage() {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [firestoreRulesWarning, setFirestoreRulesWarning] = useState(false);
 
   // Data tabs: 0 = Usuarios, 1 = Sesiones, 2 = Analítica ML
@@ -66,9 +72,21 @@ export default function FleetAdminPage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const isAdminAuthenticated = isFirebaseConfigured
-    ? cloudAdminStatus === 'authorized'
-    : isDemoAdminAuthenticated;
+  const isRegisteredAccount = Boolean(user && !user.isAnonymous);
+  const normalizedUserEmail = (user?.email || '').trim().toLowerCase();
+  const isEmailAllowed = ADMIN_EMAIL_WHITELIST.length === 0 || ADMIN_EMAIL_WHITELIST.includes(normalizedUserEmail);
+
+  const isCloudAdmin = cloudAdminStatus === 'authorized';
+  const isAccountAdmin = isRegisteredAccount && isEmailAllowed && isDemoAdminAuthenticated;
+  const isAdminAuthenticated = isCloudAdmin || isAccountAdmin || (!isFirebaseConfigured && isDemoAdminAuthenticated);
+
+  // Clear demo admin state if user logs out or switches to guest
+  useEffect(() => {
+    if (!user || user.isAnonymous) {
+      setIsDemoAdminAuthenticated(false);
+      sessionStorage.removeItem('somnoguard_admin_authenticated');
+    }
+  }, [user]);
 
   const handleUnlockAdmin = (e) => {
     e.preventDefault();
@@ -77,7 +95,7 @@ export default function FleetAdminPage() {
       sessionStorage.setItem('somnoguard_admin_authenticated', 'true');
       setPinError('');
     } else {
-      setPinError('PIN de demostración incorrecto.');
+      setPinError('PIN de supervisión incorrecto.');
     }
   };
 
@@ -211,55 +229,98 @@ export default function FleetAdminPage() {
           <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a', mb: 1 }}>
             Panel de Supervisión Reservado
           </Typography>
-          <Typography variant="body2" sx={{ color: '#64748b', mb: 3 }}>
-            {isFirebaseConfigured
-              ? 'En modo Firebase, esta sección exige el atributo seguro admin=true en la cuenta autenticada.'
-              : 'Modo académico local: este PIN solo separa las vistas durante la demostración y no reemplaza seguridad de servidor.'}
-          </Typography>
 
-          {isFirebaseConfigured ? (
-            <Alert severity={cloudAdminStatus === 'checking' ? 'info' : 'warning'}>
-              {cloudAdminStatus === 'checking'
-                ? 'Verificando permisos administrativos...'
-                : 'La cuenta actual no tiene el permiso administrativo de Firebase. El atributo debe asignarse fuera del navegador mediante Firebase Admin SDK.'}
-            </Alert>
-          ) : (
-            <form onSubmit={handleUnlockAdmin}>
-              {pinError && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {pinError}
-                </Alert>
-              )}
-
-              <TextField
-                type="password"
-                label="PIN académico de demostración"
-                placeholder="Ingresa el PIN de demostración"
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                fullWidth
-                required
-                autoFocus
-                sx={{ mb: 2.5 }}
-              />
-
+          {!isRegisteredAccount && isFirebaseConfigured ? (
+            <>
+              <Typography variant="body2" sx={{ color: '#64748b', mb: 3 }}>
+                Este panel de supervisión de flota está reservado. Debes iniciar sesión con tu cuenta registrada en la aplicación para acceder al desbloqueo.
+              </Typography>
+              <Alert severity="warning" sx={{ mb: 3, textAlign: 'left' }}>
+                Estás en modo invitado o sin sesión activa. Inicia sesión con tu correo para continuar.
+              </Alert>
               <Button
-                type="submit"
                 variant="contained"
                 color="primary"
                 fullWidth
                 size="large"
+                onClick={() => setAuthModalOpen(true)}
                 sx={{ py: 1.3, fontWeight: 700 }}
               >
-                Abrir demostración del panel
+                Iniciar Sesión con mi Cuenta
               </Button>
-
-              <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mt: 2 }}>
-                PIN académico por defecto: <strong>{DEMO_ADMIN_PIN}</strong>. Puedes cambiarlo con VITE_ADMIN_DEMO_PIN.
+            </>
+          ) : isRegisteredAccount && !isEmailAllowed ? (
+            <>
+              <Typography variant="body2" sx={{ color: '#64748b', mb: 2 }}>
+                Sesión actual: <strong>{user?.email || user?.displayName}</strong>
               </Typography>
-            </form>
+              <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>
+                Esta cuenta no tiene permiso administrativo asignado.
+              </Alert>
+              <Button
+                variant="outlined"
+                color="primary"
+                fullWidth
+                onClick={() => setAuthModalOpen(true)}
+                sx={{ fontWeight: 700 }}
+              >
+                Cambiar de Cuenta
+              </Button>
+            </>
+          ) : (
+            <>
+              <Typography variant="body2" sx={{ color: '#64748b', mb: 2 }}>
+                {isRegisteredAccount ? (
+                  <>
+                    Cuenta activa: <strong>{user?.displayName || user?.email}</strong>
+                  </>
+                ) : (
+                  'Modo académico local: ingresa el PIN de supervisión.'
+                )}
+              </Typography>
+
+              <Alert severity="info" sx={{ mb: 2.5, textAlign: 'left' }}>
+                Ingresa el PIN de supervisión para acceder a las métricas de la flota y analítica.
+              </Alert>
+
+              <form onSubmit={handleUnlockAdmin}>
+                {pinError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {pinError}
+                  </Alert>
+                )}
+
+                <TextField
+                  type="password"
+                  label="PIN de supervisión"
+                  placeholder="Ingresa el PIN (ej: admin123)"
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  fullWidth
+                  required
+                  autoFocus
+                  sx={{ mb: 2.5 }}
+                />
+
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  size="large"
+                  sx={{ py: 1.3, fontWeight: 700 }}
+                >
+                  Abrir Panel de Supervisión
+                </Button>
+
+                <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mt: 2 }}>
+                  PIN por defecto: <strong>{DEMO_ADMIN_PIN}</strong>
+                </Typography>
+              </form>
+            </>
           )}
         </Paper>
+        <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       </Box>
     );
   }
